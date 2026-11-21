@@ -37,6 +37,9 @@ bool checkPassword(const QString &password, const QByteArray &stored);
 /// setting alone. Returns an error message or "".
 QString prepareProfile(const Config &config, const QString &profile = profileDir());
 
+/// qBittorrent's encryption setting for uQbit's: 1 require, 0 prefer, 2 allow.
+int encryptionMode(const Config &config);
+
 /// The engine's command line (without the binary).
 QStringList engineArgs(const Config &config, const QString &profile = profileDir());
 
@@ -47,9 +50,31 @@ int execEngine(const Config &config);
 /// Whether systemd --user knows uQbit's unit (and UQBIT_NO_SYSTEMD isn't set).
 bool haveUserUnit();
 
-/// Starts the engine: the systemd user unit when there is one, else `uqbit engine run`
-/// detached. Doesn't wait for it to answer. Returns an error message or "".
-QString startEngine(const QString &self);
+/// Starts the engine: the systemd user unit (sandboxed; its writable folders brought up to
+/// date first) when there is one, else `uqbit engine run` detached. Doesn't wait for it to
+/// answer. Returns an error message or "".
+QString startEngine(const Config &config, const QString &self);
+
+// ---- the sandbox (systemd unit only)
+
+/// The folders the sandboxed engine may write: its profile, uQbit's state dir, the download
+/// folder and every folder a torrent was saved to (remembered in <state>/folders).
+QStringList writableFolders(const Config &config);
+/// Whether `folder` is inside one of writableFolders().
+bool folderAllowed(const Config &config, const QString &folder);
+/// Remembers `folder` as writable. Returns false when it was already covered.
+bool allowFolder(const Config &config, const QString &folder);
+/// <config>/systemd/user/uqbit-engine.service.d/folders.conf.
+QString dropInPath();
+/// The drop-in's text: ReadWritePaths for each folder, quoted and escaped for systemd.
+QString sandboxDropIn(const QStringList &folders);
+/// Writes the drop-in (and makes the folders that should exist), then reloads systemd when
+/// it changed. Returns an error message or "".
+QString updateSandbox(const Config &config, bool *changed = nullptr);
+/// Whether the engine runs as the systemd unit right now.
+bool engineUnitActive();
+/// Restarts the unit (after updateSandbox gave it a new folder). Returns an error or "".
+QString restartEngineUnit();
 
 /// `systemctl --user enable|disable` the unit. Returns an error message or "".
 QString setStartOnLogin(bool on);

@@ -25,7 +25,7 @@ jobs:
       - name: Install Qt 6, qbittorrent-nox and the test tools
         run: |
           pacman -Syu --noconfirm --needed base-devel git cmake ninja qt6-base qt6-declarative \
-            qt6-svg qt6-tools qbittorrent-nox xorg-server-xvfb xorg-xauth dbus python \
+            qt6-svg qt6-tools qbittorrent-nox xorg-server-xvfb xorg-xauth dbus python zlib \
             imagemagick ttf-dejavu
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build (warnings are errors)
@@ -37,6 +37,8 @@ jobs:
       - run: scripts/check-uq-theme.sh 1.0.0 src/uqtheme.h src/uqtheme.cpp
       - name: uQ Settings page
         run: QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -import tests/uq/stub -input tests/uq/tst_page.qml
+      - name: uQ bar icon and quick settings tile
+        run: QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -input tests/uq/tst_widget.qml
       # qbittorrent-nox won't run as root without a warning prompt, so the smoke test runs as a
       # plain user.
       - name: The window drives a real engine
@@ -50,3 +52,24 @@ jobs:
           name: smoke-shots
           path: shots/
           if-no-files-found: ignore
+
+  # The engine's systemd user unit with its sandbox, under a real user manager: it starts,
+  # writes only its profile and the download folder, runs Python (search), restarts on a crash.
+  sandbox:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: qbittorrent-nox and a user manager
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qbittorrent-nox python3 curl
+          # Ubuntu (not Arch) keeps unprivileged user namespaces, which user units need for
+          # their sandbox, behind AppArmor.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          sudo loginctl enable-linger "$USER"
+          for i in $(seq 30); do [ -S "/run/user/$(id -u)/bus" ] && break; sleep 1; done
+      - name: The sandboxed engine
+        run: |
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+          sh tests/sandbox/run.sh

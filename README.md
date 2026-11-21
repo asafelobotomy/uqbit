@@ -26,9 +26,24 @@ on 127.0.0.1, so you get qBittorrent's engine with a window that looks like the 
   `uqbit notify-finished`).
 - **Speed limits and a seeding ratio** that stops a torrent once it has shared enough.
 - **One window**: opening a link while uQbit is open adds it in that window.
+- **Search** with qBittorrent's search plugins (run by the engine; needs Python 3): results
+  sorted by seeds, added with one click. The Plugins sheet installs the official plugins,
+  turns them on or off, updates them, removes them, or installs one from an https:// link.
+- **Privacy by default**: encryption required, anonymous mode on, and a blocklist of known bad
+  peers (refreshed weekly; local and LAN ranges are kept out of it). Change any of it from the
+  shield in the sidebar, `uqbit config set` or uQ Settings.
+- **VPN only** (off by default): torrents use only the VPN's network interface (WireGuard,
+  OpenVPN, Proton, Mullvad and the like, found by itself or fixed with `vpn_interface`). When
+  the VPN drops, the engine is bound to an interface that doesn't exist, so nothing leaks;
+  torrents carry on when it comes back. The window and the uQ icon show the state.
+- **uQ Status icon and quick tile**: speeds, counts and the VPN state in uQ's bar, with pause
+  and resume all.
 - **uQ Settings page** (Apps › Torrents): default app, engine status with start and stop,
-  start on login, download folder, adding, limits.
+  start on login, download folder, adding, limits, privacy and VPN.
 
+![Search](docs/screenshots/search.png)
+![Search plugins](docs/screenshots/plugins.png)
+![Privacy](docs/screenshots/privacy.png)
 ![Details of a torrent](docs/screenshots/details.png)
 ![Adding a torrent, with a light uQ theme](docs/screenshots/add-light.png)
 
@@ -39,7 +54,8 @@ on 127.0.0.1, so you get qBittorrent's engine with a window that looks like the 
 | Ctrl+O | open .torrent files |
 | Ctrl+L | add magnet links |
 | Ctrl+V | add the magnet links on the clipboard |
-| Ctrl+F | search |
+| Ctrl+F | search the list (or the search field in Search) |
+| Ctrl+K | search with the plugins |
 | Space | start / stop the selected torrent |
 | Delete | remove the selected torrent |
 | Ctrl+1…4 | All, Downloading, Seeding, Finished |
@@ -62,7 +78,14 @@ uqbit config set KEY VALUE            download_folder, ask_before_adding, start_
 uqbit config reset KEY
 uqbit default status [--json]         does uQbit open .torrent files and magnet links?
 uqbit default set
+uqbit status [--json]                 engine, speeds, counts, VPN and privacy (what uQ polls)
+uqbit pause-all | resume-all
+uqbit show                            open the window
+uqbit blocklist status|update [--json]
 ```
+
+Privacy settings: `vpn_only`, `vpn_interface` (empty = find it), `encryption`
+(require/prefer/allow), `anonymous_mode`, `blocklist`, `blocklist_url`.
 
 ## How it runs the engine
 
@@ -73,19 +96,26 @@ uqbit default set
   into the profile before each start; nothing else in the profile is touched.
 - Start: `systemctl --user start uqbit-engine.service` when systemd's user manager is there,
   else `uqbit engine run` detached (log in `~/.local/state/uqbit/engine.log`).
-- uQbit's settings (folder, limits, ratio, the "finished" notification) are pushed to the engine
-  when it connects and whenever they change.
+- uQbit's settings (folder, limits, ratio, privacy, the "finished" notification) are pushed to
+  the engine when it connects and whenever they change.
+- The service restarts the engine if it crashes (at most 5 times in 5 minutes), runs it at low
+  priority with memory and task limits, and sandboxes it: no new privileges, no capabilities,
+  the system and your home read-only except its profile, uQbit's state folder, the download
+  folder and the folders you added torrents to (kept in a drop-in, `uqbit-engine.service.d/
+  folders.conf`, that uQbit updates). Adding a torrent to a new folder restarts the engine once
+  to let it write there.
 
 ## Build
 
-Qt 6.5+ (Core, Gui, Quick, QuickControls2, DBus, Network) and CMake:
+Qt 6.5+ (Core, Gui, Quick, QuickControls2, DBus, Network), zlib and CMake:
 
 ```
 cmake -B build -G Ninja && cmake --build build && ctest --test-dir build
 ```
 
 Runtime: `qbittorrent-nox` 4.6 or newer (5.x preferred) or `qbittorrent-enhanced-nox`.
-On Arch: `paru -S uqbit` (AUR).
+Search needs `python`; VPN detection uses NetworkManager when it's there. On Arch:
+`paru -S uqbit` (AUR).
 
 ## Licence
 

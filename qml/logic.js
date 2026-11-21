@@ -179,3 +179,41 @@ function windowTitle(down, up) {
 function trackerStatus(s) {
     return ["Disabled", "Not contacted", "Working", "Updating", "Not working"][Number(s)] || "";
 }
+
+/// What the window says about privacy, from App.protection: {level: "ok"|"warn"|"off",
+/// icon, title, detail}.
+function protection(p) {
+    p = p || {};
+    if (!p.required)
+        return { level: "off", icon: "shield-off", title: "No VPN required",
+                 detail: "Torrents use any network. Turn on “Only through the VPN” to stop them whenever the VPN is down." };
+    if (p.protected)
+        return { level: "ok", icon: "shield", title: "Protected by the VPN",
+                 detail: "Torrents go only through " + p.interface + ". If it drops, they stop." };
+    if (!p.up)
+        return { level: "warn", icon: "shield-off", title: "VPN down: torrents paused",
+                 detail: p.interface ? "Nothing is sent until " + p.interface + " is back."
+                                     : "Nothing is sent until a VPN connects." };
+    return { level: "warn", icon: "shield-off", title: "Binding to the VPN…",
+             detail: "The engine is moving its traffic to " + p.interface + "." };
+}
+
+/// A search result's line under its name: "1.4 GB · 120 seeds · 8 peers · example.org".
+function resultLine(r) {
+    const parts = [];
+    if (Number(r.size) > 0)
+        parts.push(bytes(r.size));
+    parts.push((Number(r.seeds) >= 0 ? r.seeds : "?") + (Number(r.seeds) === 1 ? " seed" : " seeds"));
+    if (Number(r.leechers) >= 0)
+        parts.push(r.leechers + (Number(r.leechers) === 1 ? " peer" : " peers"));
+    if (r.site)
+        parts.push(r.site);
+    return parts.join(" · ");
+}
+
+/// The search categories qBittorrent's plugins know.
+var categories = [
+    { id: "all", label: "Everything" }, { id: "movies", label: "Films" }, { id: "tv", label: "TV" },
+    { id: "music", label: "Music" }, { id: "games", label: "Games" }, { id: "anime", label: "Anime" },
+    { id: "software", label: "Software" }, { id: "books", label: "Books" }, { id: "pictures", label: "Pictures" },
+];

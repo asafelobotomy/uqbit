@@ -117,3 +117,42 @@ function failure(result) {
     const m = e.match(/uqbit: (.*)/);
     return (m ? m[1] : e).split("\n")[0];
 }
+
+/// `uqbit status --json` -> the privacy line: {text, tone: "ok"|"warn"|"off"|"unknown",
+/// blocklist}. Same words as the window's sidebar.
+function privacyLine(result) {
+    if (!result || result.error || !result.output)
+        return { text: "", tone: "unknown", blocklist: "" };
+    const s = result.output;
+    const vpn = s.vpn || {};
+    let text, tone;
+    if (!vpn.required) {
+        text = "No VPN required: torrents use any network.";
+        tone = "off";
+    } else if (s.protected) {
+        text = "Protected: torrents go only through " + vpn.interface + ".";
+        tone = "ok";
+    } else if (!vpn.up) {
+        text = vpn.interface ? "The VPN (" + vpn.interface + ") is down, so torrents send nothing until it is back."
+                             : "No VPN is connected, so torrents send nothing until one is.";
+        tone = "warn";
+    } else if (s.engine !== "running") {
+        text = "The engine will only use " + vpn.interface + " when it starts.";
+        tone = "ok";
+    } else {
+        text = "Moving the engine's traffic to " + vpn.interface + "…";
+        tone = "warn";
+    }
+    const b = s.blocklist || {};
+    const blocklist = !b.on ? "" : b.updated ? "Updated " + String(b.updated).slice(0, 10) + "; refreshed every week."
+                                             : "Not downloaded yet: uQbit gets it when the engine starts.";
+    return { text: text, tone: tone, blocklist: blocklist };
+}
+
+/// A VPN interface name as typed: "" (detect), a name, or null when it can't be one.
+function cleanInterface(text) {
+    const t = String(text || "").trim();
+    if (t === "")
+        return "";
+    return /^[A-Za-z0-9_.:@-]{1,15}$/.test(t) ? t : null;
+}

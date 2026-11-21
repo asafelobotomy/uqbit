@@ -22,6 +22,8 @@ unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
 mkdir -p "$HOME/Downloads" "$work/t"
 "$build/uqbit" config set webui_port 17999 >/dev/null
 "$build/uqbit" config set ask_before_adding false >/dev/null
+# No blocklist download from the internet in a test.
+"$build/uqbit" config set blocklist false >/dev/null
 
 head -c 3000000 /dev/urandom > "$HOME/Downloads/smoke-data.bin"
 python3 "$here/mktorrent.py" "$work/t/smoke.torrent" "$HOME/Downloads/smoke-data.bin" > "$work/t/hash"
@@ -61,6 +63,19 @@ wait_for 20 "the magnet is added through the open window" sh -c "\"$build/uqbit\
 
 sleep 2
 [ -n "$shots" ] && { mkdir -p "$shots"; import -window root "$shots/smoke.png"; }
+
+# Privacy: encryption and anonymous mode reach the engine; the VPN rule binds it to an
+# interface that doesn't exist while no VPN is up (the kill switch) and back to any after.
+json status | grep -q '"engine":"running"' || fail "uqbit status sees the engine"
+json status | grep -q '"encryption":"require"' || fail "encryption is required by default"
+"$build/uqbit" config set vpn_only true >/dev/null
+json status | grep -q '"required":true' || fail "the VPN rule is on"
+json status | grep -q '"bound":true' || fail "the engine is bound for the VPN rule"
+json status | grep -q '"protected":false' || fail "with no VPN up, nothing is protected (and nothing is sent)"
+"$build/uqbit" config set vpn_only false >/dev/null
+json status | grep -q '"required":false' || fail "the VPN rule is off again"
+"$build/uqbit" pause-all | grep -q stopped || fail "pause-all"
+"$build/uqbit" resume-all | grep -q started || fail "resume-all"
 
 # Closing the window leaves the engine seeding (keep_running defaults to on).
 kill $pid

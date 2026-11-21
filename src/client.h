@@ -57,6 +57,11 @@ public:
     void setFilePriority(const QString &hash, const QList<int> &ids, int priority, Done done);
     void setPreferences(const QJsonObject &prefs, Done done);
     void shutdown(Done done);
+    void preferences(Done done);
+
+    /// Fetches something from the internet (the blocklist): through the system's proxy, not
+    /// the engine, at most `limit` bytes. `done` gets the body or an error.
+    void download(const QUrl &url, qint64 limit, Done done);
 
     int port() const { return m_port; }
 
@@ -65,6 +70,7 @@ private:
               const QList<Upload> &uploads, Done done, bool retried);
     void login(const std::function<void(bool, const QString &)> &then);
     QNetworkAccessManager m_net;
+    QNetworkAccessManager *m_web = nullptr;
     int m_port;
     QString m_password;
     bool m_loggedIn = false;
@@ -73,5 +79,15 @@ private:
 /// The engine preferences uQbit's settings stand for (save path, limits, ratio, the
 /// "finished" notification through `<self> notify-finished`).
 QJsonObject preferencesFor(const Config &config, const QString &self);
+
+/// Binds the engine to `interface` ("" = any) and, when that changed, stops and restarts the
+/// running torrents: libtorrent keeps connections it already has when only the binding
+/// changes, so without this a peer reached outside the VPN would stay connected.
+void bindEngine(Client *client, const QString &interface, std::function<void(const Reply &)> done);
+
+/// Downloads the blocklist (blocklist_url), stores it and has the engine load it again.
+/// `done` gets "" or an error message.
+void updateBlocklist(Client *client, const Config &config,
+                     std::function<void(const QString &)> done);
 
 } // namespace uqbit

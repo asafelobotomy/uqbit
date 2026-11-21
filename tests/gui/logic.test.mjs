@@ -92,3 +92,24 @@ test("titles, dates, names, trackers", () => {
   assert.equal(L.trackerStatus(2), "Working");
   assert.equal(L.trackerStatus(9), "");
 });
+
+test("privacy status in words", () => {
+  assert.equal(L.protection({}).level, "off");
+  assert.equal(L.protection({ required: false, protected: false }).title, "No VPN required");
+  const ok = L.protection({ required: true, protected: true, up: true, bound: true, interface: "wg0" });
+  assert.equal(ok.level, "ok");
+  assert.match(ok.detail, /wg0/);
+  const down = L.protection({ required: true, protected: false, up: false, bound: true, interface: "wg0" });
+  assert.equal(down.level, "warn");
+  assert.match(down.title, /paused/);
+  assert.match(L.protection({ required: true, up: false, interface: null }).detail, /a VPN connects/);
+  assert.match(L.protection({ required: true, up: true, bound: false, interface: "tun0" }).title, /Binding/);
+});
+
+test("search result lines and categories", () => {
+  assert.equal(L.resultLine({ size: 1536, seeds: 12, leechers: 1, site: "example.org" }),
+    "1.50 KB · 12 seeds · 1 peer · example.org");
+  assert.equal(L.resultLine({ size: -1, seeds: 1, leechers: -1, site: "" }), "1 seed");
+  assert.equal(L.categories[0].id, "all");
+  assert.ok(L.categories.some((c) => c.id === "tv"));
+});

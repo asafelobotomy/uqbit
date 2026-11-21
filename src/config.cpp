@@ -32,6 +32,20 @@ const QList<Key> &keys()
          "Stop seeding a torrent once it has uploaded this many times its size (0: never)."},
         {"webui_port", "int", 17845, {}, {}, 1024, 65535,
          "The local port uQbit talks to its engine on (127.0.0.1 only)."},
+        {"vpn_only", "bool", false, {}, {}, 0, 0,
+         "Send torrent traffic only through your VPN, and stop it while the VPN is down."},
+        {"vpn_interface", "text", QString(), {}, QStringLiteral("^[A-Za-z0-9_.:@-]{0,15}$"), 0, 0,
+         "The VPN's network interface (empty: the one that is up)."},
+        {"encryption", "choice", QStringLiteral("require"),
+         {QStringLiteral("require"), QStringLiteral("prefer"), QStringLiteral("allow")}, {}, 0, 0,
+         "Connect only to peers that encrypt (require), prefer encryption, or allow either."},
+        {"anonymous_mode", "bool", true, {}, {}, 0, 0,
+         "Don't tell peers and trackers which client and version you run, or your local port."},
+        {"blocklist", "bool", true, {}, {}, 0, 0,
+         "Block peers on a public list of known monitoring and anti-piracy addresses."},
+        {"blocklist_url", "text", QString::fromLatin1(kDefaultBlocklist), {},
+         QStringLiteral("^https://[^\\s\\x00-\\x1f]{1,500}$"), 0, 0,
+         "Where the blocklist comes from (p2p, dat or p2b, optionally gzipped)."},
     };
     return all;
 }
