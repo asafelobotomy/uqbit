@@ -1,10 +1,17 @@
 #include "client.h"
 
+#include "engine.h"
+#include "privacy.h"
+#include "torrents.h"
+
 #include <QEventLoop>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QNetworkProxy>
 #include <QNetworkReply>
 #include <QTimer>
+
+#include <memory>
 
 namespace uqbit {
 
@@ -126,19 +133,28 @@ void Client::send(const QString &method, const QString &path, const QUrlQuery &q
 
 Reply Client::wait(const std::function<void(Done)> &request, int timeoutMs)
 {
-    QEventLoop loop;
-    Reply result{0, {}, QStringLiteral("the torrent engine didn't answer")};
-    bool finished = false;
-    request([&](const Reply &r) {
-        result = r;
-        finished = true;
-        loop.quit();
+    // Shared, so an answer that comes after the timeout (during a later wait) lands in a
+    // state that is still alive instead of in this returned-from frame.
+    struct State {
+        QEventLoop loop;
+        Reply result{0, {}, QStringLiteral("the torrent engine didn't answer")};
+        bool finished = false;
+        bool gaveUp = false;
+    };
+    auto st = std::make_shared<State>();
+    request([st](const Reply &r) {
+        if (st->gaveUp)
+            return;
+        st->result = r;
+        st->finished = true;
+        st->loop.quit();
     });
-    if (!finished) {
-        QTimer::singleShot(timeoutMs, &loop, &QEventLoop::quit);
-        loop.exec();
+    if (!st->finished) {
+        QTimer::singleShot(timeoutMs, &st->loop, &QEventLoop::quit);
+        st->loop.exec();
     }
-    return result;
+    st->gaveUp = true;
+    return st->result;
 }
 
 void Client::version(Done done) { get(QStringLiteral("app/version"), {}, std::move(done)); }
@@ -216,12 +232,106 @@ void Client::setPreferences(const QJsonObject &prefs, Done done)
 
 void Client::shutdown(Done done) { post(QStringLiteral("app/shutdown"), {}, std::move(done)); }
 
+void Client::preferences(Done done) { get(QStringLiteral("app/preferences"), {}, std::move(done)); }
+
+void Client::download(const QUrl &url, qint64 limit, Done done)
+{
+    if (!m_web) {
+        m_web = new QNetworkAccessManager(this);
+        m_web->setAutoDeleteReplies(true);
+        m_web->setTransferTimeout(60000);
+        m_web->setRedirectPolicy(QNetworkRequest::NoLessSafeRedirectPolicy);
+    }
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::UserAgentHeader, QByteArray("uQbit/" UQBIT_VERSION));
+    QNetworkReply *r = m_web->get(req);
+    connect(r, &QNetworkReply::downloadProgress, r, [r, limit](qint64 got, qint64) {
+        if (got > limit)
+            r->abort();
+    });
+    connect(r, &QNetworkReply::finished, this, [r, limit, done] {
+        Reply out;
+        out.status = r->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (r->error() == QNetworkReply::OperationCanceledError)
+            out.error = QStringLiteral("the download is bigger than %1 MiB").arg(limit >> 20);
+        else if (r->error() != QNetworkReply::NoError)
+            out.error = r->errorString();
+        else
+            out.body = r->readAll();
+        done(out);
+    });
+}
+
+void bindEngine(Client *client, const QString &interface, std::function<void(const Reply &)> done)
+{
+    client->preferences([=](const Reply &r) {
+        const QString now = QJsonDocument::fromJson(r.body).object()
+                                .value("current_network_interface").toString();
+        if (r.ok() && now == interface) {
+            done(r);
+            return;
+        }
+        client->setPreferences({{"current_network_interface", interface},
+                                {"current_interface_address", QString()}},
+                               [=](const Reply &set) {
+            if (!set.ok()) {
+                done(set);
+                return;
+            }
+            client->get("torrents/info", {}, [=](const Reply &info) {
+                QStringList running;
+                for (const QJsonValue &v : QJsonDocument::fromJson(info.body).array()) {
+                    const QJsonObject t = v.toObject();
+                    if (stateGroup(t.value("state").toString()) != "stopped")
+                        running << t.value("hash").toString();
+                }
+                if (running.isEmpty()) {
+                    done(set);
+                    return;
+                }
+                client->startStop(running, false, [=](const Reply &) {
+                    QTimer::singleShot(1500, client, [=] {
+                        client->startStop(running, true, [=](const Reply &) { done(set); });
+                    });
+                });
+            });
+        });
+    });
+}
+
+void updateBlocklist(Client *client, const Config &config,
+                     std::function<void(const QString &)> done)
+{
+    const QUrl url(config.text("blocklist_url"));
+    client->download(url, 64 << 20, [client, done](const Reply &r) {
+        if (!r.ok()) {
+            done(QStringLiteral("couldn't download the blocklist: %1").arg(r.error));
+            return;
+        }
+        QString error;
+        const QString path = storeBlocklist(r.body, &error);
+        if (path.isEmpty()) {
+            done(error);
+            return;
+        }
+        // Off and on again: the engine reads the file only when filtering turns on or the
+        // path changes.
+        client->setPreferences({{"ip_filter_enabled", false}}, [client, path, done](const Reply &) {
+            client->setPreferences({{"ip_filter_enabled", true},
+                                    {"ip_filter_path", path},
+                                    {"ip_filter_trackers", true}},
+                                   [done](const Reply &r) { done(r.ok() ? QString() : r.error); });
+        });
+    });
+}
+
 QJsonObject preferencesFor(const Config &config, const QString &self)
 {
     const int ratio = config.number("seed_ratio");
     QString quoted = self;
     quoted.replace('"', "\\\"");
-    return {
+    const QString list = config.boolean("blocklist") ? blocklistPath() : QString();
+    QJsonObject prefs{
         {"save_path", expandHome(config.text("download_folder"))},
         {"dl_limit", config.number("download_limit") * 1024},
         {"up_limit", config.number("upload_limit") * 1024},
@@ -230,7 +340,14 @@ QJsonObject preferencesFor(const Config &config, const QString &self)
         {"max_ratio_act", 0}, // stop the torrent
         {"autorun_enabled", config.boolean("notify_finished")},
         {"autorun_program", QStringLiteral("\"%1\" notify-finished \"%N\" \"%F\"").arg(quoted)},
+        {"encryption", encryptionMode(config)},
+        {"anonymous_mode", config.boolean("anonymous_mode")},
+        {"ip_filter_enabled", !list.isEmpty()},
+        {"ip_filter_trackers", !list.isEmpty()},
     };
+    if (!list.isEmpty())
+        prefs.insert("ip_filter_path", list);
+    return prefs;
 }
 
 } // namespace uqbit

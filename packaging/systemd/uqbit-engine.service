@@ -1,10 +1,19 @@
 # uQbit's torrent engine (qbittorrent-nox in uQbit's own profile, WebUI on 127.0.0.1 only).
 # uQbit starts it when its window opens; `uqbit config set start_on_login true` (or the
 # uQ Settings page) enables it so seeding resumes at login.
+#
+# Sandboxed: the engine sees the system and your home read-only, and may write only to its
+# profile, uQbit's state folder, the download folder and the folders you added torrents to.
+# uQbit lists those in the drop-in uqbit-engine.service.d/folders.conf (in
+# ~/.config/systemd/user) and keeps it up to date; without it the engine can write nowhere
+# in your home, so start the engine through uQbit (`uqbit engine start`), not systemctl alone.
 [Unit]
 Description=uQbit torrent engine (qBittorrent-nox)
 Documentation=https://github.com/asafelobotomy/uqbit
 After=network-online.target
+# At most 5 crashes in 5 minutes, then it stays down until started again.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=exec
@@ -13,8 +22,39 @@ Restart=on-failure
 RestartSec=5
 # The engine shuts down cleanly (saving resume data) on SIGTERM; give it time.
 TimeoutStopSec=60
+
+# Resources: a background job that yields to whatever you are doing.
 Nice=5
+CPUWeight=50
+IOWeight=50
 IOSchedulingClass=idle
+# Throttled (not killed) past 2 GiB; the page cache of the files it serves is reclaimed first.
+MemoryHigh=2G
+TasksMax=512
+LimitNOFILE=16384
+
+# The sandbox.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# Netlink: the engine lists network interfaces (the VPN binding); Unix: D-Bus notifications.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+UMask=0022
 
 [Install]
 WantedBy=default.target

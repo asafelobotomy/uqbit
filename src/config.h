@@ -10,6 +10,11 @@
 
 namespace uqbit {
 
+/// The blocklist uQbit uses unless told otherwise: Naunter's BT_BlockLists (p2p, gzipped),
+/// rebuilt daily from the iBlocklist level 1 and similar lists.
+inline constexpr auto kDefaultBlocklist =
+    "https://raw.githubusercontent.com/Naunter/BT_BlockLists/master/bt_blocklists.gz";
+
 struct Key {
     QString name;
     QString type;        // "bool", "choice", "int" or "text"

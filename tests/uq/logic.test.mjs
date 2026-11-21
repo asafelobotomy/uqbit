@@ -94,3 +94,25 @@ test("failure", () => {
     "starting on login needs systemd's user manager");
   assert.equal(L.failure({ error: "Cancelled", cancelled: true }), "");
 });
+
+test("privacy line", () => {
+  assert.equal(L.privacyLine(null).tone, "unknown");
+  assert.equal(L.privacyLine({ error: "x" }).text, "");
+  const off = L.privacyLine({ output: { engine: "running", vpn: { required: false }, blocklist: { on: true, updated: "2026-11-21T23:18:47Z" } } });
+  assert.equal(off.tone, "off");
+  assert.equal(off.blocklist, "Updated 2026-11-21; refreshed every week.");
+  const ok = L.privacyLine({ output: { engine: "running", vpn: { required: true, interface: "wg0", up: true, bound: true }, protected: true } });
+  assert.equal(ok.tone, "ok");
+  assert.match(ok.text, /only through wg0/);
+  assert.match(L.privacyLine({ output: { vpn: { required: true, interface: null, up: false } } }).text, /No VPN is connected/);
+  assert.match(L.privacyLine({ output: { vpn: { required: true, interface: "tun0", up: false } } }).text, /tun0\) is down/);
+  assert.equal(L.privacyLine({ output: { engine: "stopped", vpn: { required: true, interface: "wg0", up: true } } }).tone, "ok");
+  assert.equal(L.privacyLine({ output: { vpn: {}, blocklist: { on: true } } }).blocklist.startsWith("Not downloaded"), true);
+});
+
+test("interface names", () => {
+  assert.equal(L.cleanInterface(" wg0 "), "wg0");
+  assert.equal(L.cleanInterface(""), "");
+  assert.equal(L.cleanInterface("wg0; rm -rf"), null);
+  assert.equal(L.cleanInterface("a".repeat(16)), null);
+});

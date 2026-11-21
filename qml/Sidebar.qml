@@ -10,6 +10,10 @@ Rectangle {
     id: side
     signal addFiles()
     signal addLink()
+    signal privacyRequested()
+    /// "torrents" or "search": which one the main area shows.
+    property string view: "torrents"
+    signal viewRequested(string view)
     color: Theme.surface
 
     readonly property var server: App.torrents.server
@@ -59,14 +63,14 @@ Rectangle {
             delegate: AbstractButton {
                 id: f
                 required property var modelData
-                readonly property bool current: App.torrents.filter === modelData.id
+                readonly property bool current: side.view === "torrents" && App.torrents.filter === modelData.id
                 readonly property int n: side.counts[modelData.id] || 0
                 Layout.fillWidth: true
                 implicitHeight: 36
                 hoverEnabled: true
                 focusPolicy: Qt.TabFocus
                 Accessible.name: modelData.label
-                onClicked: App.torrents.filter = modelData.id
+                onClicked: { App.torrents.filter = modelData.id; side.viewRequested("torrents"); }
                 background: Rectangle {
                     radius: Theme.radius
                     color: f.current ? Qt.alpha(Theme.accent, 0.16) : f.hovered ? Qt.alpha(Theme.text, 0.06) : "transparent"
@@ -100,7 +104,92 @@ Rectangle {
             }
         }
 
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.topMargin: 6
+            Layout.bottomMargin: 6
+            implicitHeight: 1
+            color: Qt.alpha(Theme.border, 0.5)
+        }
+
+        AbstractButton {
+            id: searchButton
+            readonly property bool current: side.view === "search"
+            Layout.fillWidth: true
+            implicitHeight: 36
+            hoverEnabled: true
+            focusPolicy: Qt.TabFocus
+            Accessible.name: qsTr("Search")
+            onClicked: side.viewRequested("search")
+            background: Rectangle {
+                radius: Theme.radius
+                color: searchButton.current ? Qt.alpha(Theme.accent, 0.16) : searchButton.hovered ? Qt.alpha(Theme.text, 0.06) : "transparent"
+                border.color: searchButton.visualFocus ? Theme.accent : "transparent"
+            }
+            contentItem: RowLayout {
+                spacing: 10
+                Impl.IconImage {
+                    Layout.leftMargin: 8
+                    source: "qrc:/qt/qml/Uqbit/icons/search.svg"
+                    sourceSize: Qt.size(18, 18)
+                    color: searchButton.current ? Theme.accent : Theme.textMuted
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Search")
+                    color: searchButton.current ? Theme.text : Theme.textMuted
+                    font.family: Theme.fontUi
+                    font.pointSize: Theme.bodySize
+                    font.weight: searchButton.current ? Font.DemiBold : Font.Normal
+                }
+                BusyIndicator {
+                    Layout.rightMargin: 6
+                    implicitWidth: 18
+                    implicitHeight: 18
+                    running: App.searchState === "running"
+                    visible: running
+                }
+            }
+        }
+
         Item { Layout.fillHeight: true }
+
+        // Privacy: is the VPN protecting the torrents?
+        AbstractButton {
+            id: shield
+            readonly property var said: Logic.protection(App.protection)
+            readonly property color tone: said.level === "ok" ? Theme.success : said.level === "warn" ? Theme.warning : Theme.textMuted
+            Layout.fillWidth: true
+            implicitHeight: shieldRow.implicitHeight + 16
+            hoverEnabled: true
+            focusPolicy: Qt.TabFocus
+            Accessible.name: said.title
+            onClicked: side.privacyRequested()
+            background: Rectangle {
+                radius: Theme.radius
+                color: shield.hovered ? Qt.alpha(shield.tone, 0.16) : Qt.alpha(shield.tone, 0.08)
+                border.color: shield.visualFocus ? Theme.accent : Qt.alpha(shield.tone, 0.35)
+            }
+            contentItem: RowLayout {
+                id: shieldRow
+                spacing: 8
+                Impl.IconImage {
+                    Layout.leftMargin: 8
+                    source: "qrc:/qt/qml/Uqbit/icons/" + shield.said.icon + ".svg"
+                    sourceSize: Qt.size(18, 18)
+                    color: shield.tone
+                }
+                Label {
+                    Layout.fillWidth: true
+                    Layout.rightMargin: 8
+                    text: shield.said.title
+                    elide: Text.ElideRight
+                    color: Theme.text
+                    font.family: Theme.fontUi
+                    font.pointSize: Theme.smallSize
+                }
+            }
+        }
 
         // Totals
         Rectangle {

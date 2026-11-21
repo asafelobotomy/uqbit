@@ -17,6 +17,9 @@ ApplicationWindow {
     color: Theme.bg
 
     readonly property bool ready: App.status === "ready"
+    property string view: "torrents"
+    // A text field has the keys: Space, Delete and Paste are its own then.
+    readonly property bool typing: activeFocusItem !== null && activeFocusItem.hasOwnProperty("selectByMouse")
     readonly property bool wide: width >= 980
 
     palette.window: Theme.surface
@@ -52,6 +55,25 @@ ApplicationWindow {
             Layout.preferredWidth: 230
             onAddFiles: fileDialog.open()
             onAddLink: linkDialog.open()
+            view: win.view
+            onViewRequested: v => {
+                win.view = v;
+                if (v === "search") {
+                    App.selected = "";
+                    App.refreshPlugins();
+                    searchView.focusField();
+                }
+            }
+            onPrivacyRequested: privacySheet.open()
+        }
+
+        SearchView {
+            id: searchView
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.margins: 16
+            visible: win.view === "search"
+            onPluginsRequested: pluginsSheet.open()
         }
 
         // ---- the list
@@ -60,6 +82,7 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.margins: 16
             spacing: 12
+            visible: win.view === "torrents"
 
             RowLayout {
                 spacing: 10
@@ -199,7 +222,7 @@ ApplicationWindow {
             Layout.topMargin: 16
             Layout.bottomMargin: 16
             Layout.rightMargin: 16
-            visible: App.selected !== "" && win.ready
+            visible: App.selected !== "" && win.ready && win.view === "torrents"
             onRemoveRequested: (hash, name) => removeDialog.ask(hash, name)
         }
     }
@@ -231,6 +254,8 @@ ApplicationWindow {
     AddSheet { id: addSheet }
     RemoveDialog { id: removeDialog }
     LinkDialog { id: linkDialog }
+    PluginsSheet { id: pluginsSheet }
+    PrivacySheet { id: privacySheet }
 
     FileDialog {
         id: fileDialog
@@ -277,27 +302,31 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+L"; enabled: win.ready; onActivated: linkDialog.open() }
     Shortcut {
         sequences: [StandardKey.Paste]
-        enabled: win.ready && !search.activeFocus
+        enabled: win.ready && !win.typing
         onActivated: {
             if (App.pasteLinks() === 0)
                 toast.show(qsTr("No magnet links on the clipboard"));
         }
     }
-    Shortcut { sequences: [StandardKey.Find]; onActivated: search.forceActiveFocus() }
-    Shortcut { sequence: "Escape"; enabled: App.selected !== "" && !search.activeFocus; onActivated: App.selected = "" }
+    Shortcut { sequences: [StandardKey.Find]; onActivated: win.view === "search" ? searchView.focusField() : search.forceActiveFocus() }
+    Shortcut {
+        sequence: "Ctrl+K"
+        onActivated: { win.view = "search"; App.selected = ""; searchView.focusField(); }
+    }
+    Shortcut { sequence: "Escape"; enabled: App.selected !== "" && !win.typing; onActivated: App.selected = "" }
     Shortcut {
         sequence: "Delete"
-        enabled: App.selected !== "" && !search.activeFocus
+        enabled: App.selected !== "" && !win.typing
         onActivated: removeDialog.ask(App.selected, win.selectedName())
     }
     Shortcut {
         sequence: "Space"
-        enabled: App.selected !== "" && !search.activeFocus
+        enabled: App.selected !== "" && !win.typing
         onActivated: App.setRunning([App.selected], !Logic.isRunning(App.torrents.get(App.selected).group))
     }
-    Shortcut { sequences: ["Ctrl+1"]; onActivated: App.torrents.filter = "all" }
-    Shortcut { sequences: ["Ctrl+2"]; onActivated: App.torrents.filter = "downloading" }
-    Shortcut { sequences: ["Ctrl+3"]; onActivated: App.torrents.filter = "seeding" }
-    Shortcut { sequences: ["Ctrl+4"]; onActivated: App.torrents.filter = "finished" }
+    Shortcut { sequences: ["Ctrl+1"]; onActivated: { App.torrents.filter = "all"; win.view = "torrents"; } }
+    Shortcut { sequences: ["Ctrl+2"]; onActivated: { App.torrents.filter = "downloading"; win.view = "torrents"; } }
+    Shortcut { sequences: ["Ctrl+3"]; onActivated: { App.torrents.filter = "seeding"; win.view = "torrents"; } }
+    Shortcut { sequences: ["Ctrl+4"]; onActivated: { App.torrents.filter = "finished"; win.view = "torrents"; } }
     Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
 }

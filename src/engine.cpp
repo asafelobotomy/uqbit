@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include "privacy.h"
+
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -7,6 +9,7 @@
 #include <QPasswordDigestor>
 #include <QProcess>
 #include <QRandomGenerator>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
@@ -113,6 +116,20 @@ QString prepareProfile(const Config &config, const QString &profile)
     put("Preferences/General/StatusbarExternalIPDisplayed", false);
     if (!checkPassword(pw, s.value("Preferences/WebUI/Password_PBKDF2").toByteArray()))
         s.setValue("Preferences/WebUI/Password_PBKDF2", hashPassword(pw));
+    // Privacy, before the engine makes a single connection (the window and the CLI set the
+    // same through the Web API while it runs). With vpn_only the engine is bound to the VPN's
+    // interface: while that is down there is nothing to send through, so nothing leaks.
+    const VpnState vpn = vpnState(config);
+    put("BitTorrent/Session/Interface", vpn.interface);
+    put("BitTorrent/Session/InterfaceName", vpn.interface);
+    put("BitTorrent/Session/InterfaceAddress", QString());
+    put("BitTorrent/Session/Encryption", encryptionMode(config));
+    put("BitTorrent/Session/AnonymousModeEnabled", config.boolean("anonymous_mode"));
+    const QString list = config.boolean("blocklist") ? blocklistPath() : QString();
+    put("BitTorrent/Session/IPFilteringEnabled", !list.isEmpty());
+    put("BitTorrent/Session/TrackerFilteringEnabled", !list.isEmpty());
+    if (!list.isEmpty())
+        put("BitTorrent/Session/IPFilter", list);
     // A first run saves where uQbit says, until the window sets it from the settings.
     if (!s.contains("BitTorrent/Session/DefaultSavePath"))
         s.setValue("BitTorrent/Session/DefaultSavePath",
@@ -122,6 +139,12 @@ QString prepareProfile(const Config &config, const QString &profile)
         return QStringLiteral("can't write %1").arg(conf);
     QFile::setPermissions(conf, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
     return {};
+}
+
+int encryptionMode(const Config &config)
+{
+    const QString e = config.text("encryption");
+    return e == "require" ? 1 : e == "allow" ? 2 : 0;
 }
 
 QStringList engineArgs(const Config &config, const QString &profile)
@@ -181,15 +204,16 @@ bool haveUserUnit()
     return p.exitCode() == 0 && p.readAllStandardOutput().trimmed() == "loaded";
 }
 
-QString startEngine(const QString &self)
+QString startEngine(const Config &config, const QString &self)
 {
     if (engineBinary().isEmpty())
         return QStringLiteral("qbittorrent-nox is not installed");
-    if (haveUserUnit()) {
+    if (haveUserUnit() && updateSandbox(config).isEmpty()) {
         QString err;
         if (systemctl({"start", QString::fromLatin1(kUnit)}, &err) == 0)
             return {};
-        // Fall through: a broken user manager shouldn't stop the app from working.
+        // Fall through: a broken user manager (or a kernel without the namespaces the
+        // sandbox needs) shouldn't stop the app from working.
     }
     // Detached, with its output in a log of its own (not the caller's terminal or pipe).
     QDir().mkpath(stateDir());
@@ -204,11 +228,137 @@ QString startEngine(const QString &self)
     return {};
 }
 
+// ---- the sandbox
+
+static QString foldersPath() { return stateDir() + "/folders"; }
+
+static QString clean(const QString &path)
+{
+    return QDir::cleanPath(QDir::isAbsolutePath(path) ? path : expandHome(path));
+}
+
+static QStringList remembered()
+{
+    QStringList out;
+    QFile f(foldersPath());
+    if (f.open(QIODevice::ReadOnly) && f.size() < 256 * 1024)
+        for (const QByteArray &l : f.readAll().split('\n')) {
+            const QString p = QString::fromUtf8(l).trimmed();
+            if (QDir::isAbsolutePath(p) && !p.contains(QLatin1String("/../")))
+                out << QDir::cleanPath(p);
+        }
+    return out;
+}
+
+QStringList writableFolders(const Config &config)
+{
+    QStringList out{profileDir(), stateDir(), clean(config.text("download_folder"))};
+    for (const QString &p : remembered())
+        if (!out.contains(p))
+            out << p;
+    return out;
+}
+
+static bool inside(const QString &folder, const QString &root)
+{
+    return folder == root || folder.startsWith(root.endsWith('/') ? root : root + '/');
+}
+
+bool folderAllowed(const Config &config, const QString &folder)
+{
+    const QString f = clean(folder);
+    for (const QString &root : writableFolders(config))
+        if (inside(f, root))
+            return true;
+    return false;
+}
+
+bool allowFolder(const Config &config, const QString &folder)
+{
+    if (folderAllowed(config, folder)
+        || QRegularExpression("[\\x00-\\x1f]").match(folder).hasMatch())
+        return false;
+    QStringList list = remembered();
+    list << clean(folder);
+    QDir().mkpath(stateDir());
+    QSaveFile out(foldersPath());
+    if (!out.open(QIODevice::WriteOnly))
+        return false;
+    out.write(list.join('\n').toUtf8() + '\n');
+    return out.commit();
+}
+
+QString dropInPath()
+{
+    const QString env = qEnvironmentVariable("XDG_CONFIG_HOME");
+    const QString base = QDir::isAbsolutePath(env) ? env : QDir::homePath() + "/.config";
+    return base + "/systemd/user/" + QString::fromLatin1(kUnit) + ".d/folders.conf";
+}
+
+QString sandboxDropIn(const QStringList &folders)
+{
+    QString out = QStringLiteral(
+        "# Written by uQbit: the folders its sandboxed engine may write to. uQbit rewrites this\n"
+        "# file when you add a torrent to a new folder; edit uQbit's settings instead.\n"
+        "[Service]\n");
+    for (QString p : folders) {
+        // "-": a folder that doesn't exist (an unplugged drive) doesn't stop the engine.
+        p.replace('\\', QLatin1String("\\\\")).replace('"', QLatin1String("\\\""));
+        p.replace('%', QLatin1String("%%"));
+        out += QStringLiteral("ReadWritePaths=\"-%1\"\n").arg(p);
+    }
+    return out;
+}
+
+QString updateSandbox(const Config &config, bool *changed)
+{
+    if (changed)
+        *changed = false;
+    const QStringList folders = writableFolders(config);
+    for (int i = 0; i < 3 && i < folders.size(); ++i) // profile, state, downloads
+        QDir().mkpath(folders.at(i));
+    const QString text = sandboxDropIn(folders);
+    const QString path = dropInPath();
+    QFile old(path);
+    if (old.open(QIODevice::ReadOnly) && old.readAll() == text.toUtf8())
+        return {};
+    old.close();
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QSaveFile out(path);
+    if (!out.open(QIODevice::WriteOnly) || out.write(text.toUtf8()) < 0 || !out.commit())
+        return QStringLiteral("can't write %1").arg(path);
+    if (changed)
+        *changed = true;
+    QString err;
+    if (systemctl({"daemon-reload"}, &err) != 0)
+        return err.isEmpty() ? QStringLiteral("systemctl daemon-reload failed") : err;
+    return {};
+}
+
+bool engineUnitActive()
+{
+    return haveUserUnit()
+           && systemctl({"is-active", "--quiet", QString::fromLatin1(kUnit)}) == 0;
+}
+
+QString restartEngineUnit()
+{
+    QString err;
+    if (systemctl({"restart", QString::fromLatin1(kUnit)}, &err) != 0)
+        return err.isEmpty() ? QStringLiteral("can't restart the torrent engine") : err;
+    return {};
+}
+
 QString setStartOnLogin(bool on)
 {
     if (!haveUserUnit())
         return QStringLiteral("starting on login needs systemd's user manager");
     QString err;
+    if (on) {
+        const QString e = updateSandbox(Config());
+        if (!e.isEmpty())
+            return e;
+    }
     if (systemctl({on ? "enable" : "disable", QString::fromLatin1(kUnit)}, &err) != 0)
         return err.isEmpty() ? QStringLiteral("systemctl failed") : err;
     return {};

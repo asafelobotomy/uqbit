@@ -49,6 +49,7 @@ App::App(const QStringList &initial, QObject *parent) : QObject(parent), m_initi
             return;
         }
         applyPreferences();
+        checkProtection();
     };
     connect(&m_configWatch, &QFileSystemWatcher::fileChanged, this, reload);
     connect(&m_configWatch, &QFileSystemWatcher::directoryChanged, this, reload);
@@ -57,6 +58,12 @@ App::App(const QStringList &initial, QObject *parent) : QObject(parent), m_initi
     connect(&m_poll, &QTimer::timeout, this, &App::poll);
     m_detailsTimer.setInterval(2000);
     connect(&m_detailsTimer, &QTimer::timeout, this, &App::refreshDetails);
+    // The kill switch follows the VPN (it can come back under another name).
+    m_protectTimer.setInterval(5000);
+    connect(&m_protectTimer, &QTimer::timeout, this, &App::checkProtection);
+    m_protectTimer.start();
+    m_searchTimer.setInterval(1000);
+    connect(&m_searchTimer, &QTimer::timeout, this, &App::pollSearch);
 
     // The engine runs on; it stops with the window only when the settings say so.
     if (auto *core = QCoreApplication::instance())
@@ -132,12 +139,7 @@ void App::poll()
                     m_engineVersion = QString::fromUtf8(v.body).trimmed();
                     emit statusChanged();
                 });
-                applyPreferences();
-                if (!m_initial.isEmpty()) {
-                    const QStringList in = m_initial;
-                    m_initial.clear();
-                    openInputs(in);
-                }
+                engineReady();
             }
             if (!m_poll.isActive())
                 m_poll.start();
@@ -145,6 +147,8 @@ void App::poll()
         }
         // Not answering: start it once, then keep trying for a while.
         if (m_status == "ready") {
+            m_boundKnown = false;
+            checkProtection();
             m_torrents.clear();
             m_rid = 0;
             setStatus("starting", tr("The torrent engine stopped. Starting it again…"));
@@ -152,7 +156,7 @@ void App::poll()
         }
         if (!m_startedEngine && r.status == 0) {
             m_startedEngine = true;
-            const QString e = startEngine(QCoreApplication::applicationFilePath());
+            const QString e = startEngine(m_config, QCoreApplication::applicationFilePath());
             if (!e.isEmpty()) {
                 setStatus("error", e);
                 return;

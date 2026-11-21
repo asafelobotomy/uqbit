@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.2.0 — 2026-11-22
+
+Privacy, search, a sandbox and uQ's bar.
+
+- **VPN kill switch.** "Only through the VPN" binds the engine to the VPN's connection
+  (NetworkManager's WireGuard device, else an up tunnel such as wg*, tun*, proton*; Tailscale
+  doesn't count). While the VPN is down the engine is bound to nothing, so torrents stop instead
+  of leaking; changing the binding drops the connections the engine already had. The window,
+  `uqbit status` and the uQ widgets say whether torrents are protected right now.
+- **Private by default:** peers must encrypt, anonymous mode is on, and peers on a public
+  blocklist of monitoring and anti-piracy addresses (Naunter's BT_BlockLists, refreshed weekly)
+  are blocked. LAN and loopback ranges are taken out of the list so local peers still work.
+- **Search** through qBittorrent's search plugins (needs Python): results as they come, best
+  seeded first, added through the plugin when the result is a page. A Plugins sheet adds
+  qBittorrent's own plugins in one click, any other by its https link, turns them on and off and
+  updates them.
+- **Sandboxed engine.** `uqbit-engine.service` sees the system and the home folder read-only and
+  may write only its profile, uQbit's state folder, the download folder and folders torrents were
+  added to (uQbit keeps a `folders.conf` drop-in for them and restarts the engine when a new one
+  is needed). No new privileges, no capabilities, a system-call filter. Restarts on a crash (at
+  most 5 times in 5 minutes), runs at low CPU and I/O priority, throttled past 2 GiB.
+- **uQ integration:** an icon in uQ's Status island (filled while downloading, a warning dot
+  while the VPN holds torrents back) whose popup has the speeds, the counts, the VPN state,
+  Pause all, Resume all and Open uQbit; a Torrents tile in quick settings with a switch; and a
+  Privacy card on the Settings page.
+- `uqbit status [--json]`, `pause-all`, `resume-all`, `show` and `blocklist status|update`.
+- Tested with qBittorrent Enhanced Edition's engine (qbittorrent-enhanced-nox 5.2.4.10), which
+  Bindle now installs for uQbit.
+
 ## 0.1.0 — 2026-11-21
 
 First release.

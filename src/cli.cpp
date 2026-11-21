@@ -1,9 +1,11 @@
 #include "cli.h"
+#include "cli_util.h"
 #include "client.h"
 #include "config.h"
 #include "defaultapp.h"
 #include "engine.h"
 #include "notify.h"
+#include "privacy.h"
 #include "torrentfile.h"
 
 #include <QCoreApplication>
@@ -26,6 +28,11 @@ static const char *kUsage =
     "  uqbit add [--folder DIR] [--stopped] MAGNET|FILE|URL...\n"
     "                                      add torrents without the window\n"
     "  uqbit list [--json]                 the torrents, newest first\n"
+    "  uqbit status [--json]               speeds, counts and whether the VPN protects them\n"
+    "  uqbit pause-all | resume-all        stop or start every torrent\n"
+    "  uqbit show                          open the window\n"
+    "  uqbit blocklist status|update [--json]\n"
+    "                                      the peer blocklist; update downloads it now\n"
     "  uqbit engine status [--json]        is the torrent engine (qbittorrent-nox) running?\n"
     "  uqbit engine start|stop             start or stop it\n"
     "  uqbit engine run                    run it in the foreground (the systemd unit does)\n"
@@ -42,40 +49,37 @@ bool isCliCommand(const QStringList &argsIn)
     args.removeAll(QStringLiteral("--json"));
     if (args.isEmpty())
         return false;
-    static const QStringList cmds = {"config", "default", "engine", "add", "list",
-                                     "notify-finished", "--version", "-V", "--help", "-h"};
+    static const QStringList cmds = {"config",    "default",   "engine",    "add",
+                                     "list",      "status",    "pause-all", "resume-all",
+                                     "show",      "blocklist", "notify-finished",
+                                     "--version", "-V",        "--help",    "-h"};
     return cmds.contains(args.first());
 }
 
-static void json(QTextStream &out, const QJsonObject &o)
+void json(QTextStream &out, const QJsonObject &o)
 {
     out << QJsonDocument(o).toJson(QJsonDocument::Compact) << '\n';
 }
 
-static int fail(QTextStream &err, const QString &msg, int code = 1)
+int fail(QTextStream &err, const QString &msg, int code)
 {
     err << "uqbit: " << msg << '\n';
     return code;
 }
 
-static QString self() { return QCoreApplication::applicationFilePath(); }
+QString self() { return QCoreApplication::applicationFilePath(); }
 
-/// The engine's version, or "" when it doesn't answer.
-static QString engineVersion(Client &c, int timeoutMs = 4000)
+QString engineVersion(Client &c, int timeoutMs)
 {
     const Reply r = c.wait([&c](Client::Done d) { c.version(d); }, timeoutMs);
     return r.ok() ? QString::fromUtf8(r.body).trimmed() : QString();
 }
 
-static void applyToEngine(const Config &cfg);
-
-/// Starts the engine when it isn't answering and waits up to 20 s for it; then gives it the
-/// settings.
-static QString ensureEngine(Client &c)
+QString ensureEngine(Client &c)
 {
     if (!engineVersion(c, 2000).isEmpty())
         return {};
-    const QString e = startEngine(self());
+    const QString e = startEngine(Config(), self());
     if (!e.isEmpty())
         return e;
     QElapsedTimer t;
@@ -108,14 +112,15 @@ static QJsonObject engineStatus(const Config &cfg)
             {"start_on_login", cfg.boolean("start_on_login")}};
 }
 
-/// Pushes the settings to a running engine (nothing when it isn't running).
-static void applyToEngine(const Config &cfg)
+void applyToEngine(const Config &cfg)
 {
     Client c(cfg.number("webui_port"), webPassword());
     if (engineVersion(c, 1500).isEmpty())
         return;
     const QJsonObject prefs = preferencesFor(cfg, self());
     c.wait([&](Client::Done d) { c.setPreferences(prefs, d); }, 5000);
+    const QString bind = vpnState(cfg).interface;
+    c.wait([&](Client::Done d) { bindEngine(&c, bind, d); }, 10000);
 }
 
 static int cmdConfig(const QStringList &args, bool asJson, QTextStream &out, QTextStream &err)
@@ -270,6 +275,17 @@ static int cmdAdd(QStringList args, QTextStream &out, QTextStream &err)
     const QString e = ensureEngine(c);
     if (!e.isEmpty())
         return fail(err, e);
+    // The sandboxed engine writes only where it was allowed to: a new folder restarts it.
+    if (!folderAllowed(cfg, folder) && engineUnitActive()) {
+        allowFolder(cfg, folder);
+        QString se = updateSandbox(cfg);
+        if (se.isEmpty())
+            se = restartEngineUnit();
+        if (se.isEmpty())
+            se = ensureEngine(c);
+        if (!se.isEmpty())
+            return fail(err, se);
+    }
     const Reply r = c.wait([&](Client::Done d) { c.add(urls, files, folder, start, d); });
     if (!r.ok())
         return fail(err, r.error);
@@ -337,6 +353,14 @@ int runCli(const QStringList &argsIn, QTextStream &out, QTextStream &err)
         return cmdAdd(args, out, err);
     if (cmd == "list" && args.size() == 1)
         return cmdList(asJson, out, err);
+    if (cmd == "status" && args.size() == 1)
+        return cmdStatus(asJson, out, err);
+    if ((cmd == "pause-all" || cmd == "resume-all") && args.size() == 1)
+        return cmdAll(cmd == "resume-all", out, err);
+    if (cmd == "show" && args.size() == 1)
+        return cmdShow(err);
+    if (cmd == "blocklist")
+        return cmdBlocklist(args, asJson, out, err);
     if (cmd == "notify-finished" && args.size() >= 2) {
         notifyFinished(args.at(1), args.value(2));
         return 0;

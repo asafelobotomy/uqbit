@@ -64,6 +64,31 @@ id = "seed_ratio"
 label = "Stop seeding at ratio"
 keywords = ["ratio", "share", "seeding", "upload", "stop"]
 
+[[setting]]
+id = "vpn_only"
+label = "Send torrents only through the VPN"
+keywords = ["vpn", "kill switch", "privacy", "leak", "wireguard", "openvpn", "proton", "interface", "bind"]
+
+[[setting]]
+id = "vpn_interface"
+label = "VPN connection"
+keywords = ["vpn", "interface", "wg0", "tun0", "network"]
+
+[[setting]]
+id = "encryption"
+label = "Connect only to peers that encrypt"
+keywords = ["encryption", "privacy", "isp", "throttling", "secure"]
+
+[[setting]]
+id = "anonymous_mode"
+label = "Anonymous mode"
+keywords = ["anonymous", "privacy", "fingerprint", "client id"]
+
+[[setting]]
+id = "blocklist"
+label = "Block known monitoring peers"
+keywords = ["blocklist", "ip filter", "peerblock", "anti-piracy", "privacy"]
+
 [requires]
 bins = ["uqbit"]
 
@@ -92,6 +117,13 @@ argv = ["/usr/bin/uqbit", "engine", "status", "--json"]
 output = "json"
 timeout_ms = 10000
 
+# Speeds, counts, the VPN binding and the blocklist (the Privacy card).
+[[command]]
+id = "status"
+argv = ["/usr/bin/uqbit", "status", "--json"]
+output = "json"
+timeout_ms = 10000
+
 # The torrents, for the counts under the engine row.
 [[command]]
 id = "list"
@@ -106,14 +138,14 @@ id = "config-set"
 argv = ["/usr/bin/uqbit", "config", "set"]
 output = "text"
 timeout_ms = 20000
-args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio)$" }, { name = "value", pattern = "^(true|false|[0-9]{1,7}|~?/[A-Za-z0-9 ._+@'()/-]{0,300})$" }]
+args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist)$" }, { name = "value", pattern = "^(true|false|[0-9]{1,7}|~?/[A-Za-z0-9 ._+@'()/-]{0,300}|require|prefer|allow|[A-Za-z][A-Za-z0-9_.:@-]{0,14})$" }]
 
 [[command]]
 id = "config-reset"
 argv = ["/usr/bin/uqbit", "config", "reset"]
 output = "text"
 timeout_ms = 20000
-args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio)$" }]
+args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist)$" }]
 
 # Sets uQbit for application/x-bittorrent and magnet: links in ~/.config/mimeapps.list.
 [[command]]
@@ -135,3 +167,10 @@ argv = ["/usr/bin/uqbit", "--json", "engine", "stop"]
 output = "json"
 timeout_ms = 30000
 confirm = "Stop the torrent engine? Downloads and seeding pause until it starts again."
+
+# Downloads the peer blocklist now (it refreshes by itself every week).
+[[command]]
+id = "blocklist-update"
+argv = ["/usr/bin/uqbit", "--json", "blocklist", "update"]
+output = "json"
+timeout_ms = 150000

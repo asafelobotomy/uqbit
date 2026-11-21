@@ -16,6 +16,8 @@ SettingsPage {
     property var config: null
     property var defaults: null
     property var engine: Logic.engineLine(null, null)
+    /// `uqbit status --json`: the VPN binding and the blocklist.
+    property var status: null
     property string configError: ""
     /// The key whose change is running ("" when none), and what each change said, by key.
     property string workingKey: ""
@@ -54,6 +56,10 @@ SettingsPage {
     }
 
     function readEngine() {
+        ctx.command.run("status", [], r => {
+            if (!page.dead)
+                page.status = r;
+        });
         ctx.command.run("engine-status", [], s => {
             if (page.dead)
                 return;
@@ -89,7 +95,7 @@ SettingsPage {
             page.workingKey = "";
             if (r.error)
                 note(key, Logic.failure(r));
-            if (key === "start_on_login")
+            if (key === "start_on_login" || key === "vpn_only" || key === "vpn_interface")
                 readEngine();
         };
         if (value === "")
@@ -107,7 +113,7 @@ SettingsPage {
             page.workingKey = "";
             if (r.error)
                 note(key, Logic.failure(r));
-            if (key === "engine")
+            if (key === "engine" || key === "blocklist")
                 readEngine();
         });
     }
@@ -266,6 +272,8 @@ SettingsPage {
                 onChosen: v => page.setKey("notify_finished", Logic.boolArg(v))
             }
         }
+
+        PrivacyCard { page: page }
 
         SettingsCard {
             title: "Speed and sharing"

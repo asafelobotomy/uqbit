@@ -1,0 +1,41 @@
+# uQbit's icon in uQ's Status island: an arrow that fills with the accent while torrents
+# download, a warning dot while the VPN rule holds them back. Its popup shows the speeds, what
+# is downloading and seeding, whether the VPN protects them, and pauses or resumes everything.
+# Installed to /usr/share/uq/shell/widgets/uqbit/ by uQbit's package; inert without uQ.
+# Reference: docs/integrating.md ("Widgets") in the uQ repository.
+uq_api = 1
+id = "uqbit"
+name = "Torrents"
+slot = "bar"
+qml = "Widget.qml"
+order = 55
+
+[requires]
+bins = ["uqbit"]
+
+# Speeds, counts and the VPN binding as one JSON object (it also rebinds the engine to the VPN
+# when that came back under another name). Answers within a second; the engine stopped is an
+# answer too ({"engine": "stopped"}).
+[[command]]
+id = "status"
+argv = ["/usr/bin/uqbit", "status", "--json"]
+output = "json"
+timeout_ms = 5000
+
+[[command]]
+id = "pause-all"
+argv = ["/usr/bin/uqbit", "pause-all"]
+output = "text"
+timeout_ms = 8000
+
+[[command]]
+id = "resume-all"
+argv = ["/usr/bin/uqbit", "resume-all"]
+output = "text"
+timeout_ms = 8000
+
+[[command]]
+id = "show"
+argv = ["/usr/bin/uqbit", "show"]
+output = "none"
+timeout_ms = 4000

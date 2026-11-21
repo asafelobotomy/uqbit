@@ -111,16 +111,23 @@ void App::addPending(const QString &folderIn, bool start)
     emit pendingChanged();
     if (n == 0)
         return;
-    m_client->add(urls, files, folder, start, [this, n, folder](const Reply &r) {
-        if (!r.ok())
-            emit notice(tr("Couldn't add: %1").arg(r.error));
-        else if (r.body.trimmed().startsWith("Fails"))
-            emit notice(tr("Already added, or not a torrent"));
-        else
-            emit notice(n == 1 ? tr("Added to %1").arg(prettyFolder(folder))
-                               : tr("Added %1 torrents to %2").arg(n).arg(prettyFolder(folder)));
-        poll();
-    });
+    auto send = [this, urls, files, folder, start, n] {
+        if (!m_client)
+            return;
+        m_client->add(urls, files, folder, start, [this, n, folder](const Reply &r) {
+            if (!r.ok())
+                emit notice(tr("Couldn't add: %1").arg(r.error));
+            else if (r.body.trimmed().startsWith("Fails"))
+                emit notice(tr("Already added, or not a torrent"));
+            else
+                emit notice(n == 1 ? tr("Added to %1").arg(prettyFolder(folder))
+                                   : tr("Added %1 torrents to %2").arg(n).arg(prettyFolder(folder)));
+            poll();
+        });
+    };
+    // The sandboxed engine writes only where it was allowed to: a new folder restarts it.
+    if (!makeWritable(folder, send))
+        send();
 }
 
 void App::dropPending(int index)
