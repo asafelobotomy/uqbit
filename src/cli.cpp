@@ -149,6 +149,25 @@ static int cmdConfig(const QStringList &args, bool asJson, QTextStream &out, QTe
                 return fail(err, se);
             }
         }
+        // A new folder the sandboxed engine has to write to: the unit is restarted to let it.
+        static const QStringList folderKeys{"download_folder", "incomplete_folder", "watch_folder"};
+        if (folderKeys.contains(key)) {
+            bool changed = false;
+            const QString se = updateSandbox(cfg, &changed);
+            if (!se.isEmpty())
+                err << "uqbit: " << se << '\n';
+            else if (changed && engineUnitActive()) {
+                const QString re = restartEngineUnit();
+                if (!re.isEmpty())
+                    err << "uqbit: " << re << '\n';
+                else {
+                    Client c(cfg.number("webui_port"), webPassword());
+                    const QString ee = ensureEngine(c); // waits for it, then applies the settings
+                    if (!ee.isEmpty())
+                        err << "uqbit: " << ee << '\n';
+                }
+            }
+        }
         if (key != "start_on_login" && key != "webui_port")
             applyToEngine(cfg);
         out << key << " = " << cfg.value(key).toString() << (sub == "reset" ? " (default)\n" : "\n");

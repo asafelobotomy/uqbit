@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0 — 2026-11-22
+
+Folder and torrent management in uQ Settings (Apps › Torrents) and `uqbit config`.
+
+- **Folders card.** The save folder, a folder for unfinished downloads (`incomplete_folder`;
+  finished torrents move to the save folder), a watched folder whose .torrent files are added
+  by themselves and then deleted there (`watch_folder`), how each torrent's files land
+  (`content_layout`: original, subfolder, no_subfolder), `.!qB` on unfinished files
+  (`incomplete_extension`) and reserving disk space up front (`preallocate`).
+- **Queue and seeding card.** How many torrents download, seed and run at once
+  (`max_active_downloads`, `max_active_uploads`, `max_active_torrents`; qBittorrent's 3, 3 and
+  5 by default, 0 for no limit, all 0 turns the queue off), a seeding time limit (`seed_time`,
+  minutes) beside the ratio, and whether a torrent that is done seeding stops or leaves the
+  list with its files kept (`when_seeded`).
+- The sandboxed engine may write to the unfinished and watched folders too. Changing any folder
+  with `uqbit config set` (or the page) updates the sandbox and restarts the engine once when
+  it needs a new folder; before, a new save folder set there wasn't writable until uQbit's
+  window restarted the engine.
+
 ## 0.2.0 — 2026-11-22
 
 Privacy, search, a sandbox and uQ's bar.

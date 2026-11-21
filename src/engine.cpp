@@ -253,6 +253,13 @@ static QStringList remembered()
 QStringList writableFolders(const Config &config)
 {
     QStringList out{profileDir(), stateDir(), clean(config.text("download_folder"))};
+    // Unfinished downloads, and the watched folder (the engine deletes the .torrent files it
+    // has added from there).
+    for (const char *key : {"incomplete_folder", "watch_folder"}) {
+        const QString f = config.text(QString::fromLatin1(key));
+        if (!f.isEmpty() && !out.contains(clean(f)))
+            out << clean(f);
+    }
     for (const QString &p : remembered())
         if (!out.contains(p))
             out << p;
@@ -315,8 +322,14 @@ QString updateSandbox(const Config &config, bool *changed)
     if (changed)
         *changed = false;
     const QStringList folders = writableFolders(config);
-    for (int i = 0; i < 3 && i < folders.size(); ++i) // profile, state, downloads
-        QDir().mkpath(folders.at(i));
+    // Profile, state, downloads and the folders in uQbit's settings: systemd refuses to start
+    // the unit over a missing one only without the "-", but the engine needs them anyway.
+    QStringList made{profileDir(), stateDir(), clean(config.text("download_folder"))};
+    for (const char *key : {"incomplete_folder", "watch_folder"})
+        if (!config.text(QString::fromLatin1(key)).isEmpty())
+            made << clean(config.text(QString::fromLatin1(key)));
+    for (const QString &f : made)
+        QDir().mkpath(f);
     const QString text = sandboxDropIn(folders);
     const QString path = dropInPath();
     QFile old(path);
@@ -329,6 +342,8 @@ QString updateSandbox(const Config &config, bool *changed)
         return QStringLiteral("can't write %1").arg(path);
     if (changed)
         *changed = true;
+    if (!haveUserUnit()) // nothing to reload: the drop-in waits for systemd
+        return {};
     QString err;
     if (systemctl({"daemon-reload"}, &err) != 0)
         return err.isEmpty() ? QStringLiteral("systemctl daemon-reload failed") : err;

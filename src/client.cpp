@@ -331,13 +331,41 @@ QJsonObject preferencesFor(const Config &config, const QString &self)
     QString quoted = self;
     quoted.replace('"', "\\\"");
     const QString list = config.boolean("blocklist") ? blocklistPath() : QString();
+    const int seedTime = config.number("seed_time");
+    const QString layout = config.text("content_layout");
+    const QString incomplete = expandHome(config.text("incomplete_folder"));
+    const QString watch = expandHome(config.text("watch_folder"));
+    // 0 in uQbit's settings is "no limit", which the engine spells -1; no limits at all turns
+    // the queue off.
+    const auto active = [&](const char *key) {
+        const int n = config.number(QString::fromLatin1(key));
+        return n > 0 ? n : -1;
+    };
+    const bool queueing = config.number("max_active_downloads") > 0
+                          || config.number("max_active_uploads") > 0
+                          || config.number("max_active_torrents") > 0;
     QJsonObject prefs{
         {"save_path", expandHome(config.text("download_folder"))},
         {"dl_limit", config.number("download_limit") * 1024},
         {"up_limit", config.number("upload_limit") * 1024},
         {"max_ratio_enabled", ratio > 0},
         {"max_ratio", ratio > 0 ? double(ratio) : -1.0},
-        {"max_ratio_act", 0}, // stop the torrent
+        {"max_seeding_time_enabled", seedTime > 0},
+        {"max_seeding_time", seedTime > 0 ? seedTime : -1},
+        // 0 stops the torrent, 1 removes it (its files stay).
+        {"max_ratio_act", config.text("when_seeded") == "remove" ? 1 : 0},
+        {"temp_path_enabled", !incomplete.isEmpty()},
+        {"incomplete_files_ext", config.boolean("incomplete_extension")},
+        {"preallocate_all", config.boolean("preallocate")},
+        {"torrent_content_layout", layout == "subfolder" ? "Subfolder"
+                                   : layout == "no_subfolder" ? "NoSubfolder" : "Original"},
+        {"queueing_enabled", queueing},
+        {"max_active_downloads", active("max_active_downloads")},
+        {"max_active_uploads", active("max_active_uploads")},
+        {"max_active_torrents", active("max_active_torrents")},
+        // Folders the engine watches for .torrent files; 1 = save to the default folder. The
+        // list replaces the engine's, so an empty one stops watching.
+        {"scan_dirs", watch.isEmpty() ? QJsonObject{} : QJsonObject{{watch, 1}}},
         {"autorun_enabled", config.boolean("notify_finished")},
         {"autorun_program", QStringLiteral("\"%1\" notify-finished \"%N\" \"%F\"").arg(quoted)},
         {"encryption", encryptionMode(config)},
@@ -347,6 +375,8 @@ QJsonObject preferencesFor(const Config &config, const QString &self)
     };
     if (!list.isEmpty())
         prefs.insert("ip_filter_path", list);
+    if (!incomplete.isEmpty())
+        prefs.insert("temp_path", incomplete);
     return prefs;
 }
 

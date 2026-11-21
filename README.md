@@ -39,11 +39,13 @@ on 127.0.0.1, so you get qBittorrent's engine with a window that looks like the 
 - **uQ Status icon and quick tile**: speeds, counts and the VPN state in uQ's bar, with pause
   and resume all.
 - **uQ Settings page** (Apps › Torrents): default app, engine status with start and stop,
-  start on login, download folder, adding, limits, privacy and VPN.
+  start on login, adding, folders (save, unfinished, watched), the queue and seeding limits,
+  privacy and VPN, speed limits.
 
 ![Search](docs/screenshots/search.png)
 ![Search plugins](docs/screenshots/plugins.png)
 ![Privacy](docs/screenshots/privacy.png)
+![uQ Settings › Torrents](docs/screenshots/uq-settings.png)
 ![Details of a torrent](docs/screenshots/details.png)
 ![Adding a torrent, with a light uQ theme](docs/screenshots/add-light.png)
 
@@ -83,6 +85,11 @@ uqbit pause-all | resume-all
 uqbit show                            open the window
 uqbit blocklist status|update [--json]
 ```
+
+Folder settings: `incomplete_folder`, `watch_folder` (empty = off), `content_layout`
+(original/subfolder/no_subfolder), `incomplete_extension`, `preallocate`. Queue and seeding:
+`max_active_downloads`, `max_active_uploads`, `max_active_torrents` (0 = no limit), `seed_time`
+(minutes), `when_seeded` (stop/remove). `uqbit config show` lists every setting with its help.
 
 Privacy settings: `vpn_only`, `vpn_interface` (empty = find it), `encryption`
 (require/prefer/allow), `anonymous_mode`, `blocklist`, `blocklist_url`.
