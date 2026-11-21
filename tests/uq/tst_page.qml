@@ -18,7 +18,12 @@ Item {
                             { key: "download_limit", value: 0 }, { key: "upload_limit", value: 512 },
                             { key: "seed_ratio", value: 0 }, { key: "vpn_only", value: false },
                             { key: "vpn_interface", value: "" }, { key: "encryption", value: "require" },
-                            { key: "anonymous_mode", value: true }, { key: "blocklist", value: true }] } },
+                            { key: "anonymous_mode", value: true }, { key: "blocklist", value: true },
+                            { key: "incomplete_folder", value: "" }, { key: "watch_folder", value: "~/Torrents/watch" },
+                            { key: "content_layout", value: "original" }, { key: "incomplete_extension", value: false },
+                            { key: "preallocate", value: false }, { key: "max_active_downloads", value: 3 },
+                            { key: "max_active_uploads", value: 0 }, { key: "max_active_torrents", value: 5 },
+                            { key: "seed_time", value: 90 }, { key: "when_seeded", value: "stop" }] } },
                 status: { code: 0, output: { engine: "running", vpn: { required: false, interface: null, up: false, bound: false },
                           protected: false, blocklist: { on: true, path: "/x/blocklist.p2p", updated: "2026-11-21T23:18:47Z" } } },
                 "blocklist-update": { code: 0, output: { on: true } },
@@ -84,7 +89,9 @@ Item {
             tryCompare(row("keep_running"), "value", true);
             tryCompare(row("start_on_login"), "value", false);
             tryVerify(() => row("start_on_login").enabled);
-            tryVerify(() => label("Now: down No limit, up 512 KiB/s, seeding never stops by itself.") !== null);
+            tryVerify(() => label("512 KiB/s") !== null);
+            tryVerify(() => label("At once: 3 downloading, any number seeding, 5 in all. The rest wait their turn.") !== null);
+            tryVerify(() => label("1 h 30 min") !== null);
         }
 
         function test_a_switch_sets_the_key() {
@@ -128,6 +135,44 @@ Item {
             save.clicked();
             tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
             compare(fake.calls.find(c => c[1] === "config-set")[2], ["download_limit", "2048"]);
+        }
+
+        function test_folders() {
+            tryVerify(() => row("incomplete_folder") !== null);
+            const off = find(loader.item, i => i.objectName === "watch_folder-off");
+            tryVerify(() => off.visible);
+            compare(find(loader.item, i => i.objectName === "incomplete_folder-off").visible, false);
+            const field = find(loader.item, i => i.objectName === "incomplete_folder-field");
+            const save = find(loader.item, i => i.objectName === "incomplete_folder-save");
+            field.text = "../etc";
+            compare(save.enabled, false);
+            field.text = "~/Torrents/unfinished/";
+            tryVerify(() => save.enabled);
+            save.clicked();
+            tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
+            compare(fake.calls.find(c => c[1] === "config-set")[2], ["incomplete_folder", "~/Torrents/unfinished"]);
+        }
+
+        function test_turning_the_watched_folder_off_resets_it() {
+            const off = find(loader.item, i => i.objectName === "watch_folder-off");
+            tryVerify(() => off.visible && off.enabled);
+            off.clicked();
+            tryVerify(() => fake.calls.some(c => c[1] === "config-reset"));
+            compare(fake.calls.find(c => c[1] === "config-reset")[2], ["watch_folder"]);
+        }
+
+        function test_choices() {
+            const layout = find(loader.item, i => i.objectName === "content_layout-combo");
+            tryVerify(() => layout.enabled);
+            compare(layout.currentIndex, 0);
+            layout.activated(1);
+            tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
+            compare(fake.calls.find(c => c[1] === "config-set")[2], ["content_layout", "subfolder"]);
+            const seeded = find(loader.item, i => i.objectName === "when_seeded-combo");
+            tryVerify(() => seeded.enabled);
+            seeded.activated(1);
+            tryVerify(() => fake.calls.filter(c => c[1] === "config-set").length === 2);
+            compare(fake.calls.filter(c => c[1] === "config-set")[1][2], ["when_seeded", "remove"]);
         }
 
         function test_stop_engine_asks_and_reads_again() {

@@ -95,7 +95,7 @@ SettingsPage {
             page.workingKey = "";
             if (r.error)
                 note(key, Logic.failure(r));
-            if (key === "start_on_login" || key === "vpn_only" || key === "vpn_interface")
+            if (["start_on_login", "vpn_only", "vpn_interface", "download_folder", "incomplete_folder", "watch_folder"].indexOf(key) >= 0)
                 readEngine();
         };
         if (value === "")
@@ -219,34 +219,8 @@ SettingsPage {
 
         SettingsCard {
             title: "Adding torrents"
-            iconName: "folder-download"
+            iconName: "list-add"
 
-            SettingRow {
-                settingId: "download_folder"
-                label: "Save new torrents in"
-                highlight: page.highlight
-                QQC2.TextField {
-                    id: folder
-                    placeholderText: "~/Downloads"
-                    text: page.value("download_folder") || ""
-                    Layout.preferredWidth: 200
-                    onAccepted: saveFolder.clicked()
-                }
-                QQC2.Button {
-                    id: saveFolder
-                    text: "Save"
-                    enabled: page.workingKey === "" && Logic.cleanFolder(folder.text) !== null
-                             && Logic.cleanFolder(folder.text) !== page.value("download_folder")
-                    onClicked: page.setKey("download_folder", Logic.cleanFolder(folder.text))
-                }
-            }
-            UqLabel {
-                visible: text !== ""
-                text: page.notes["download_folder"] || ""
-                color: page.errorColor
-                wrapMode: Text.Wrap
-                Layout.fillWidth: true
-            }
             SwitchRow {
                 settingId: "ask_before_adding"
                 label: "Show the torrent and its folder before adding it"
@@ -273,61 +247,28 @@ SettingsPage {
             }
         }
 
+        FoldersCard { page: page }
+
+        QueueCard { page: page }
+
         PrivacyCard { page: page }
 
         SettingsCard {
-            title: "Speed and sharing"
+            title: "Speed"
             iconName: "speedometer"
             help: "0 means no limit."
 
-            Repeater {
-                model: [
-                    { key: "download_limit", label: "Download limit (KiB/s)", max: 1000000 },
-                    { key: "upload_limit", label: "Upload limit (KiB/s)", max: 1000000 },
-                    { key: "seed_ratio", label: "Stop seeding at ratio", max: 100 }
-                ]
-                delegate: ColumnLayout {
-                    id: numberRow
-                    required property var modelData
-                    readonly property string current: String(page.value(modelData.key) === undefined ? "" : page.value(modelData.key))
-                    readonly property var typed: Logic.cleanNumber(field.text, modelData.max)
-                    Layout.fillWidth: true
-                    SettingRow {
-                        Layout.fillWidth: true
-                        settingId: numberRow.modelData.key
-                        label: numberRow.modelData.label
-                        highlight: page.highlight
-                        QQC2.TextField {
-                            id: field
-                            text: numberRow.current
-                            placeholderText: "0"
-                            inputMethodHints: Qt.ImhDigitsOnly
-                            Layout.preferredWidth: 100
-                            onAccepted: save.clicked()
-                        }
-                        QQC2.Button {
-                            id: save
-                            text: "Save"
-                            enabled: page.workingKey === "" && numberRow.typed !== null && numberRow.typed !== numberRow.current
-                            onClicked: page.setKey(numberRow.modelData.key, numberRow.typed)
-                        }
-                    }
-                    UqLabel {
-                        visible: text !== ""
-                        text: page.notes[numberRow.modelData.key] || ""
-                        color: page.errorColor
-                        wrapMode: Text.Wrap
-                        Layout.fillWidth: true
-                    }
-                }
+            NumberRow {
+                page: page
+                key: "download_limit"
+                label: "Download limit (KiB/s)"
+                after: Logic.limitLabel(page.value("download_limit"))
             }
-            UqLabel {
-                text: "Now: down " + Logic.limitLabel(page.value("download_limit")) + ", up "
-                      + Logic.limitLabel(page.value("upload_limit")) + ", "
-                      + (Number(page.value("seed_ratio")) > 0 ? "seeding stops at ratio " + page.value("seed_ratio") : "seeding never stops by itself") + "."
-                color: page.mutedColor
-                wrapMode: Text.Wrap
-                Layout.fillWidth: true
+            NumberRow {
+                page: page
+                key: "upload_limit"
+                label: "Upload limit (KiB/s)"
+                after: Logic.limitLabel(page.value("upload_limit"))
             }
         }
     }

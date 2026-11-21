@@ -161,6 +161,53 @@ private slots:
         QCOMPARE(p.value("autorun_program").toString(),
                  QString("\"/usr/bin/uqbit\" notify-finished \"%N\" \"%F\""));
         QVERIFY(p.value("save_path").toString().endsWith("/Downloads"));
+        // Defaults: qBittorrent's own queue, no temp folder, nothing watched.
+        QCOMPARE(p.value("queueing_enabled").toBool(), true);
+        QCOMPARE(p.value("max_active_downloads").toInt(), 3);
+        QCOMPARE(p.value("max_active_torrents").toInt(), 5);
+        QCOMPARE(p.value("temp_path_enabled").toBool(), false);
+        QVERIFY(!p.contains("temp_path"));
+        QCOMPARE(p.value("scan_dirs").toObject(), QJsonObject());
+        QCOMPARE(p.value("torrent_content_layout").toString(), QString("Original"));
+        QCOMPARE(p.value("max_ratio_act").toInt(), 0);
+        QCOMPARE(p.value("max_seeding_time_enabled").toBool(), false);
+    }
+
+    void folderAndQueuePreferences()
+    {
+        Config c(m_dir.filePath("queue.json"));
+        QCOMPARE(c.set("incomplete_folder", "~/Torrents/part"), QString());
+        QCOMPARE(c.set("watch_folder", "/data/watch"), QString());
+        QVERIFY(!c.set("watch_folder", "relative/path").isEmpty());
+        QVERIFY(!c.set("incomplete_folder", "~/../etc").isEmpty());
+        c.set("content_layout", "no_subfolder");
+        c.set("incomplete_extension", "true");
+        c.set("max_active_downloads", "0");
+        c.set("max_active_uploads", "0");
+        c.set("max_active_torrents", "0");
+        c.set("seed_time", "120");
+        c.set("when_seeded", "remove");
+        QVERIFY(!c.set("when_seeded", "delete").isEmpty());
+        QJsonObject p = preferencesFor(c, "/usr/bin/uqbit");
+        QCOMPARE(p.value("temp_path_enabled").toBool(), true);
+        QCOMPARE(p.value("temp_path").toString(), QDir::homePath() + "/Torrents/part");
+        QCOMPARE(p.value("scan_dirs").toObject(), (QJsonObject{{"/data/watch", 1}}));
+        QCOMPARE(p.value("torrent_content_layout").toString(), QString("NoSubfolder"));
+        QCOMPARE(p.value("incomplete_files_ext").toBool(), true);
+        // All limits off turns the queue off; 0 is the engine's -1.
+        QCOMPARE(p.value("queueing_enabled").toBool(), false);
+        QCOMPARE(p.value("max_active_downloads").toInt(), -1);
+        QCOMPARE(p.value("max_seeding_time_enabled").toBool(), true);
+        QCOMPARE(p.value("max_seeding_time").toInt(), 120);
+        QCOMPARE(p.value("max_ratio_act").toInt(), 1);
+        c.set("max_active_uploads", "2");
+        p = preferencesFor(c, "/usr/bin/uqbit");
+        QCOMPARE(p.value("queueing_enabled").toBool(), true);
+        QCOMPARE(p.value("max_active_uploads").toInt(), 2);
+        // Both folders become writable for the sandboxed engine.
+        const QStringList w = writableFolders(c);
+        QVERIFY(w.contains(QDir::homePath() + "/Torrents/part"));
+        QVERIFY(w.contains("/data/watch"));
     }
 
     void torrentFiles()

@@ -116,3 +116,16 @@ test("interface names", () => {
   assert.equal(L.cleanInterface("wg0; rm -rf"), null);
   assert.equal(L.cleanInterface("a".repeat(16)), null);
 });
+
+test("optionalFolder, queueLine, minutesLabel", () => {
+  assert.equal(L.optionalFolder("  "), "");
+  assert.equal(L.optionalFolder("~/T/"), "~/T");
+  assert.equal(L.optionalFolder("relative"), null);
+  assert.equal(L.queueLine({ max_active_downloads: 0, max_active_uploads: 0, max_active_torrents: 0 }),
+    "Every torrent runs at once: nothing waits in a queue.");
+  assert.equal(L.queueLine({ max_active_downloads: 3, max_active_uploads: 3, max_active_torrents: 5 }),
+    "At once: 3 downloading, 3 seeding, 5 in all. The rest wait their turn.");
+  assert.equal(L.minutesLabel(0), "");
+  assert.equal(L.minutesLabel(45), "45 min");
+  assert.equal(L.minutesLabel(1500), "1 d 1 h");
+});

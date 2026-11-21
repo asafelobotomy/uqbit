@@ -156,3 +156,28 @@ function cleanInterface(text) {
         return "";
     return /^[A-Za-z0-9_.:@-]{1,15}$/.test(t) ? t : null;
 }
+
+/// A typed folder for a setting that can be off: "" -> "" (off), else as cleanFolder.
+function optionalFolder(text) {
+    return String(text || "").trim() === "" ? "" : cleanFolder(text);
+}
+
+/// The queue line under the Torrents card: {downloads, uploads, torrents} -> words.
+function queueLine(values) {
+    const v = values || {};
+    const part = (n, what) => (Number(n) > 0 ? Number(n) + " " + what : "any number " + what);
+    if (!(Number(v.max_active_downloads) > 0) && !(Number(v.max_active_uploads) > 0)
+            && !(Number(v.max_active_torrents) > 0))
+        return "Every torrent runs at once: nothing waits in a queue.";
+    return "At once: " + part(v.max_active_downloads, "downloading") + ", " + part(v.max_active_uploads, "seeding")
+           + ", " + part(v.max_active_torrents, "in all") + ". The rest wait their turn.";
+}
+
+/// The minutes a torrent seeds for, for the row under it: 0 -> "", 90 -> "1 h 30 min".
+function minutesLabel(minutes) {
+    const n = Number(minutes) || 0;
+    if (n <= 0)
+        return "";
+    const d = Math.floor(n / 1440), h = Math.floor((n % 1440) / 60), m = n % 60;
+    return [d ? d + " d" : "", h ? h + " h" : "", m ? m + " min" : ""].filter(s => s !== "").join(" ");
+}
