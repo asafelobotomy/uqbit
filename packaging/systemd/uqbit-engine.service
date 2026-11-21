@@ -1,0 +1,20 @@
+# uQbit's torrent engine (qbittorrent-nox in uQbit's own profile, WebUI on 127.0.0.1 only).
+# uQbit starts it when its window opens; `uqbit config set start_on_login true` (or the
+# uQ Settings page) enables it so seeding resumes at login.
+[Unit]
+Description=uQbit torrent engine (qBittorrent-nox)
+Documentation=https://github.com/asafelobotomy/uqbit
+After=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/uqbit engine run
+Restart=on-failure
+RestartSec=5
+# The engine shuts down cleanly (saving resume data) on SIGTERM; give it time.
+TimeoutStopSec=60
+Nice=5
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target

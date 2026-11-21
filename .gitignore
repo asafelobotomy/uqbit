@@ -1,0 +1,6 @@
+/build/
+/build-*/
+/aur/
+/shots/
+/dist/
+CMakeLists.txt.user

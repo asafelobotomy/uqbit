@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=uQbit
+GenericName=Torrent Client
+Comment=Download and share torrents in uQ's style
+Icon=io.github.asafelobotomy.uqbit
+Exec=uqbit -- %U
+TryExec=uqbit
+Terminal=false
+Categories=Network;FileTransfer;P2P;Qt;
+Keywords=torrent;bittorrent;magnet;qbittorrent;download;seed;p2p;
+MimeType=application/x-bittorrent;x-scheme-handler/magnet;
+StartupWMClass=io.github.asafelobotomy.uqbit
+SingleMainWindow=true

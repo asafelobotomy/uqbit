@@ -1,0 +1,137 @@
+# uQbit's page in uQ Settings (Apps > Torrents). Installed to
+# /usr/share/uq/settings/pages/uqbit/ by the uqbit package; inert without uQ.
+# Reference: docs/settings-pages.md in the uQ repository. Every read and change is a `uqbit`
+# command (see `uqbit --help`); nothing here runs as root.
+uq_api = 2
+id = "uqbit"
+name = "Torrents"
+icon = "io.github.asafelobotomy.uqbit"
+qml = "Page.qml"
+keywords = ["uqbit", "torrent", "torrents", "magnet", "qbittorrent", "bittorrent", "seeding", "downloads", "p2p"]
+
+[[setting]]
+id = "default"
+label = "Open torrents with uQbit"
+keywords = ["default", "open with", "magnet links", ".torrent", "qbittorrent", "file types"]
+
+[[setting]]
+id = "engine"
+label = "Torrent engine"
+keywords = ["qbittorrent-nox", "engine", "daemon", "background", "start", "stop", "running"]
+
+[[setting]]
+id = "keep_running"
+label = "Keep seeding after closing"
+keywords = ["background", "seeding", "close", "quit", "tray"]
+
+[[setting]]
+id = "start_on_login"
+label = "Start on login"
+keywords = ["autostart", "login", "boot", "systemd", "background"]
+
+[[setting]]
+id = "download_folder"
+label = "Download folder"
+keywords = ["downloads", "save path", "folder", "location"]
+
+[[setting]]
+id = "ask_before_adding"
+label = "Ask before adding"
+keywords = ["add dialog", "confirm", "magnet", "choose folder"]
+
+[[setting]]
+id = "start_added"
+label = "Start new torrents right away"
+keywords = ["paused", "stopped", "start", "add"]
+
+[[setting]]
+id = "notify_finished"
+label = "Notify when a download finishes"
+keywords = ["notification", "done", "complete", "finished"]
+
+[[setting]]
+id = "download_limit"
+label = "Download limit"
+keywords = ["speed", "bandwidth", "throttle", "limit", "kib/s"]
+
+[[setting]]
+id = "upload_limit"
+label = "Upload limit"
+keywords = ["speed", "bandwidth", "throttle", "limit", "upload", "kib/s"]
+
+[[setting]]
+id = "seed_ratio"
+label = "Stop seeding at ratio"
+keywords = ["ratio", "share", "seeding", "upload", "stop"]
+
+[requires]
+bins = ["uqbit"]
+
+# ---- reads
+
+# Every setting with its value and default, from ~/.config/uqbit/config.json.
+[[command]]
+id = "config"
+argv = ["/usr/bin/uqbit", "config", "show", "--json"]
+output = "json"
+timeout_ms = 8000
+watch = { files = ["~/.config/uqbit/config.json"] }
+
+# Whether uQbit opens .torrent files and magnet links (mimeapps.list).
+[[command]]
+id = "default-status"
+argv = ["/usr/bin/uqbit", "default", "status", "--json"]
+output = "json"
+timeout_ms = 8000
+watch = { files = ["~/.config/mimeapps.list"] }
+
+# Whether the engine (qbittorrent-nox) is installed and running.
+[[command]]
+id = "engine-status"
+argv = ["/usr/bin/uqbit", "engine", "status", "--json"]
+output = "json"
+timeout_ms = 10000
+
+# The torrents, for the counts under the engine row.
+[[command]]
+id = "list"
+argv = ["/usr/bin/uqbit", "list", "--json"]
+output = "json"
+timeout_ms = 10000
+
+# ---- writes
+
+[[command]]
+id = "config-set"
+argv = ["/usr/bin/uqbit", "config", "set"]
+output = "text"
+timeout_ms = 20000
+args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio)$" }, { name = "value", pattern = "^(true|false|[0-9]{1,7}|~?/[A-Za-z0-9 ._+@'()/-]{0,300})$" }]
+
+[[command]]
+id = "config-reset"
+argv = ["/usr/bin/uqbit", "config", "reset"]
+output = "text"
+timeout_ms = 20000
+args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio)$" }]
+
+# Sets uQbit for application/x-bittorrent and magnet: links in ~/.config/mimeapps.list.
+[[command]]
+id = "default-set"
+argv = ["/usr/bin/uqbit", "--json", "default", "set"]
+output = "json"
+timeout_ms = 8000
+confirm = "Open .torrent files and magnet links with uQbit from now on?"
+
+[[command]]
+id = "engine-start"
+argv = ["/usr/bin/uqbit", "--json", "engine", "start"]
+output = "json"
+timeout_ms = 30000
+
+[[command]]
+id = "engine-stop"
+argv = ["/usr/bin/uqbit", "--json", "engine", "stop"]
+output = "json"
+timeout_ms = 30000
+confirm = "Stop the torrent engine? Downloads and seeding pause until it starts again."
