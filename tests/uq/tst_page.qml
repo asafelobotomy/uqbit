@@ -1,0 +1,129 @@
+// uQbit's uQ Settings page against the stub org.uq.settings module and a fake ctx:
+//   QT_QPA_PLATFORM=offscreen qmltestrunner -import tests/uq/stub -input tests/uq/tst_page.qml
+import QtQuick
+import QtTest
+
+Item {
+    id: root
+    width: 900
+    height: 900
+
+    readonly property url pageUrl: Qt.resolvedUrl("../../uq/pages/uqbit/Page.qml")
+
+    property var answers: ({
+                config: { code: 0, output: { settings: [
+                            { key: "download_folder", value: "~/Downloads" }, { key: "ask_before_adding", value: true },
+                            { key: "start_added", value: true }, { key: "notify_finished", value: true },
+                            { key: "keep_running", value: true }, { key: "start_on_login", value: false },
+                            { key: "download_limit", value: 0 }, { key: "upload_limit", value: 512 },
+                            { key: "seed_ratio", value: 0 }] } },
+                "default-status": { code: 0, output: { desktop_id: "io.github.asafelobotomy.uqbit.desktop",
+                                    types: 2, ours: 0, default: false,
+                                    torrent: "org.qbittorrent.qBittorrent.desktop", magnet: "org.qbittorrent.qBittorrent.desktop" } },
+                "engine-status": { code: 0, output: { installed: true, running: true, version: "v5.3.0", systemd: true } },
+                list: { code: 0, output: { running: true, torrents: [{ state: "downloading", progress: 0.5 }] } },
+                "config-set": { code: 0, output: "ok" },
+                "config-reset": { code: 0, output: "ok" },
+                "default-set": { code: 0, output: { default: true } },
+                "engine-start": { code: 0, output: { running: true } },
+                "engine-stop": { code: 0, output: { running: false } }
+            })
+
+    FakeContext {
+        id: fake
+        confirmed: ["default-set", "engine-stop"]
+        commands: root.answers
+    }
+
+    Loader {
+        id: loader
+        anchors.fill: parent
+    }
+
+    function find(item, pred) {
+        if (pred(item))
+            return item;
+        for (let i = 0; i < item.children.length; ++i) {
+            const hit = find(item.children[i], pred);
+            if (hit)
+                return hit;
+        }
+        if (item.contentItem && item.contentItem !== item) {
+            const hit = find(item.contentItem, pred);
+            if (hit)
+                return hit;
+        }
+        return null;
+    }
+    function row(id) { return find(loader.item, i => i.settingId === id); }
+    function button(text) { return find(loader.item, i => i.text === text && i.hasOwnProperty("checkable")); }
+    function label(text) { return find(loader.item, i => i.text === text && i.hasOwnProperty("wrapMode")); }
+
+    TestCase {
+        name: "UqbitPage"
+        when: windowShown
+
+        function init() {
+            fake.commands = root.answers;
+            fake.calls = [];
+            loader.source = "";
+            loader.source = root.pageUrl;
+            verify(loader.status === Loader.Ready, "the page loads");
+            loader.item.ctx = fake.ctx;
+        }
+
+        function test_reads_and_shows() {
+            tryCompare(row("default"), "label", "Torrent files and magnet links open in qBittorrent.");
+            compare(fake.calls[0], ["watch", "config"]);
+            tryCompare(row("engine"), "label", "Running qBittorrent 5.3.0 · 1 torrent, 1 downloading");
+            tryCompare(row("keep_running"), "value", true);
+            tryCompare(row("start_on_login"), "value", false);
+            tryVerify(() => row("start_on_login").enabled);
+            tryVerify(() => label("Now: down No limit, up 512 KiB/s, seeding never stops by itself.") !== null);
+        }
+
+        function test_a_switch_sets_the_key() {
+            tryCompare(row("notify_finished"), "value", true);
+            row("notify_finished").chosen(false);
+            tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
+            compare(fake.calls.find(c => c[1] === "config-set")[2], ["notify_finished", "false"]);
+        }
+
+        function test_a_limit_saves() {
+            tryVerify(() => row("download_limit") !== null);
+            const r = row("download_limit");
+            const field = find(r, i => i.hasOwnProperty("placeholderText") && i.placeholderText === "0");
+            tryCompare(field, "text", "0");
+            field.text = "2048";
+            const save = find(r, i => i.text === "Save" && i.hasOwnProperty("checkable"));
+            tryVerify(() => save.enabled);
+            save.clicked();
+            tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
+            compare(fake.calls.find(c => c[1] === "config-set")[2], ["download_limit", "2048"]);
+        }
+
+        function test_stop_engine_asks_and_reads_again() {
+            tryVerify(() => button("Stop") !== null && button("Stop").visible);
+            const before = fake.calls.filter(c => c[1] === "engine-status").length;
+            button("Stop").clicked();
+            tryVerify(() => fake.calls.some(c => c[1] === "engine-stop"));
+            tryVerify(() => fake.calls.filter(c => c[1] === "engine-status").length > before);
+        }
+
+        function test_make_default_and_open() {
+            tryVerify(() => button("Make uQbit the default") !== null && button("Make uQbit the default").visible);
+            button("Make uQbit the default").clicked();
+            tryVerify(() => fake.calls.some(c => c[1] === "default-set"));
+            button("Open uQbit").clicked();
+            tryVerify(() => fake.calls.some(c => c[0] === "openApp" && c[1] === "io.github.asafelobotomy.uqbit.desktop"));
+        }
+
+        function test_failed_read_shows_error() {
+            fake.commands = Object.assign({}, fake.commands, { config: { error: "timed out" } });
+            loader.source = "";
+            loader.source = root.pageUrl;
+            loader.item.ctx = fake.ctx;
+            tryCompare(loader.item, "configError", "timed out");
+        }
+    }
+}

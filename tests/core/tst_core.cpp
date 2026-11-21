@@ -1,0 +1,284 @@
+// Core tests: settings, the engine's profile and password, .torrent/magnet parsing, the
+// torrent list's merging of sync/maindata, the default app. No window, no engine.
+#include "client.h"
+#include "config.h"
+#include "defaultapp.h"
+#include "engine.h"
+#include "torrentfile.h"
+#include "torrents.h"
+
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSettings>
+#include <QSignalSpy>
+#include <QTemporaryDir>
+#include <QTest>
+
+using namespace uqbit;
+
+static QByteArray bencodeTorrent(bool multi)
+{
+    // d4:infod...ee with the keys in order, as a real .torrent has them.
+    QByteArray info = "d";
+    if (multi)
+        info += "5:filesld6:lengthi100e4:pathl3:sub5:a.mkveed6:lengthi23e4:pathl5:b.srteee";
+    else
+        info += "6:lengthi4096e";
+    info += "4:name" + QByteArray::number(multi ? 6 : 7) + ":" + (multi ? "Folder" : "one.iso");
+    info += "12:piece lengthi16384e6:pieces20:aaaaaaaaaaaaaaaaaaaae";
+    return "d4:info" + info + "e";
+}
+
+static QJsonObject md(const char *json)
+{
+    return QJsonDocument::fromJson(json).object();
+}
+
+class TstCore : public QObject {
+    Q_OBJECT
+private slots:
+    void init()
+    {
+        qputenv("XDG_STATE_HOME", m_dir.filePath("state").toUtf8());
+        qputenv("XDG_CONFIG_HOME", m_dir.filePath("config").toUtf8());
+        qputenv("XDG_DATA_HOME", m_dir.filePath("data").toUtf8());
+        qunsetenv("UQBIT_CONFIG");
+        qunsetenv("UQBIT_PROFILE");
+    }
+
+    void configDefaultsAndValidation()
+    {
+        const QString path = m_dir.filePath("c/config.json");
+        Config c(path);
+        QCOMPARE(c.text("download_folder"), QString("~/Downloads"));
+        QCOMPARE(c.boolean("keep_running"), true);
+        QCOMPARE(c.number("webui_port"), 17845);
+        QVERIFY(c.set("download_limit", "512").isEmpty());
+        QVERIFY(!c.set("download_limit", "-1").isEmpty());
+        QVERIFY(!c.set("download_limit", "1e3").isEmpty());
+        QVERIFY(!c.set("seed_ratio", "101").isEmpty());
+        QVERIFY(!c.set("webui_port", "80").isEmpty());
+        QVERIFY(!c.set("download_folder", "relative/dir").isEmpty());
+        QVERIFY(!c.set("download_folder", "~/a/../../etc").isEmpty());
+        QVERIFY(c.set("download_folder", "~/Torrents").isEmpty());
+        QVERIFY(c.set("ask_before_adding", "off").isEmpty());
+        QVERIFY(!c.set("nope", "1").isEmpty());
+        Config again(path);
+        QCOMPARE(again.number("download_limit"), 512);
+        QCOMPARE(again.text("download_folder"), QString("~/Torrents"));
+        QCOMPARE(again.boolean("ask_before_adding"), false);
+        QVERIFY(again.reset("download_limit").isEmpty());
+        QCOMPARE(Config(path).number("download_limit"), 0);
+        const QJsonObject d = again.describe();
+        QCOMPARE(d.value("settings").toArray().size(), keys().size());
+    }
+
+    void configIgnoresJunk()
+    {
+        const QString path = m_dir.filePath("junk.json");
+        QFile f(path);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write(R"({"download_limit": "abc", "upload_limit": 64, "keep_running": "no", "x": 1})");
+        f.close();
+        Config c(path);
+        QCOMPARE(c.number("download_limit"), 0);
+        QCOMPARE(c.number("upload_limit"), 64);
+        QCOMPARE(c.boolean("keep_running"), false);
+    }
+
+    void passwordHashMatchesQbittorrent()
+    {
+        // qBittorrent's own form: base64(salt):base64(PBKDF2-HMAC-SHA512, 100000, 64 bytes).
+        const QByteArray stored = hashPassword("secret123");
+        const QList<QByteArray> parts = stored.split(':');
+        QCOMPARE(parts.size(), 2);
+        QCOMPARE(QByteArray::fromBase64(parts[0]).size(), 16);
+        QCOMPARE(QByteArray::fromBase64(parts[1]).size(), 64);
+        QVERIFY(checkPassword("secret123", stored));
+        QVERIFY(!checkPassword("secret124", stored));
+        QVERIFY(!checkPassword("secret123", "garbage"));
+        // A known vector (salt "0123456789abcdef"), computed with Python's hashlib.
+        QCOMPARE(hashPassword("adminadmin", "0123456789abcdef"),
+                 QByteArray("MDEyMzQ1Njc4OWFiY2RlZg==:ZZS5EElovMoBVYDjMAaPI3BYalEsuNQNBCv4gjnI6KDYLC66zug9YBa5FIuP+3n/qFDM467FTFd4KkOdsg0Ugw=="));
+    }
+
+    void passwordFileIsPrivateAndStable()
+    {
+        const QString a = webPassword();
+        QVERIFY(a.size() >= 16);
+        QCOMPARE(webPassword(), a);
+        QFile::Permissions p = QFile::permissions(passwordPath());
+        QVERIFY(p & QFile::ReadOwner);
+        QVERIFY(!(p & QFile::ReadGroup));
+        QVERIFY(!(p & QFile::ReadOther));
+    }
+
+    void profileGetsWebUiSettingsAndKeepsOthers()
+    {
+        const QString profile = m_dir.filePath("profile");
+        const QString conf = engineConfPath(profile);
+        QDir().mkpath(QFileInfo(conf).absolutePath());
+        {
+            QSettings s(conf, QSettings::IniFormat);
+            s.setValue("BitTorrent/Session/Port", 51413);
+            s.setValue("Preferences/WebUI/Port", 8080);
+        }
+        Config c(m_dir.filePath("pc.json"));
+        QVERIFY(c.set("webui_port", "18000").isEmpty());
+        QCOMPARE(prepareProfile(c, profile), QString());
+        QSettings s(conf, QSettings::IniFormat);
+        QCOMPARE(s.value("BitTorrent/Session/Port").toInt(), 51413);
+        QCOMPARE(s.value("Preferences/WebUI/Port").toInt(), 18000);
+        QCOMPARE(s.value("Preferences/WebUI/Address").toString(), QString("127.0.0.1"));
+        QCOMPARE(s.value("Preferences/WebUI/Username").toString(), QString("uqbit"));
+        QCOMPARE(s.value("LegalNotice/Accepted").toBool(), true);
+        const QByteArray hash = s.value("Preferences/WebUI/Password_PBKDF2").toByteArray();
+        QVERIFY(checkPassword(webPassword(), hash));
+        // A second run keeps the same hash (no rewrite on every start).
+        QCOMPARE(prepareProfile(c, profile), QString());
+        QSettings again(conf, QSettings::IniFormat);
+        QCOMPARE(again.value("Preferences/WebUI/Password_PBKDF2").toByteArray(), hash);
+        QVERIFY(engineArgs(c, profile).contains("--webui-port=18000"));
+        QVERIFY(engineArgs(c, profile).contains("--profile=" + profile));
+    }
+
+    void preferences()
+    {
+        Config c(m_dir.filePath("prefs.json"));
+        c.set("download_limit", "100");
+        c.set("seed_ratio", "2");
+        c.set("notify_finished", "false");
+        const QJsonObject p = preferencesFor(c, "/usr/bin/uqbit");
+        QCOMPARE(p.value("dl_limit").toInt(), 102400);
+        QCOMPARE(p.value("up_limit").toInt(), 0);
+        QCOMPARE(p.value("max_ratio_enabled").toBool(), true);
+        QCOMPARE(p.value("max_ratio").toDouble(), 2.0);
+        QCOMPARE(p.value("autorun_enabled").toBool(), false);
+        QCOMPARE(p.value("autorun_program").toString(),
+                 QString("\"/usr/bin/uqbit\" notify-finished \"%N\" \"%F\""));
+        QVERIFY(p.value("save_path").toString().endsWith("/Downloads"));
+    }
+
+    void torrentFiles()
+    {
+        const QJsonObject one = describeTorrent(bencodeTorrent(false));
+        QVERIFY(one.value("ok").toBool());
+        QCOMPARE(one.value("name").toString(), QString("one.iso"));
+        QCOMPARE(one.value("size").toInteger(), 4096);
+        QCOMPARE(one.value("file_count").toInt(), 1);
+        const QJsonObject multi = describeTorrent(bencodeTorrent(true));
+        QVERIFY(multi.value("ok").toBool());
+        QCOMPARE(multi.value("name").toString(), QString("Folder"));
+        QCOMPARE(multi.value("size").toInteger(), 123);
+        QCOMPARE(multi.value("file_count").toInt(), 2);
+        QCOMPARE(multi.value("files").toArray().at(0).toObject().value("path").toString(),
+                 QString("sub/a.mkv"));
+        QVERIFY(!describeTorrent("not bencode").value("ok").toBool());
+        QVERIFY(!describeTorrent("d4:infoi3ee").value("ok").toBool());
+        QVERIFY(!describeTorrent("d4:info" + QByteArray(100, 'l')).value("ok").toBool());
+        QVERIFY(!describeTorrent("d4:infod4:name99999:xee").value("ok").toBool());
+    }
+
+    void magnets()
+    {
+        const QJsonObject m = describeMagnet(
+            "magnet:?xt=urn:btih:08ADA5A7A6183AAE1E09D831DF6748D566095A10&dn=Sintel+2010&tr=udp%3A%2F%2Fa&tr=udp%3A%2F%2Fb");
+        QVERIFY(m.value("ok").toBool());
+        QCOMPARE(m.value("hash").toString(), QString("08ada5a7a6183aae1e09d831df6748d566095a10"));
+        QCOMPARE(m.value("name").toString(), QString("Sintel 2010"));
+        QCOMPARE(m.value("trackers").toInt(), 2);
+        QVERIFY(!describeMagnet("magnet:?dn=x").value("ok").toBool());
+        QVERIFY(!describeMagnet("https://example.org").value("ok").toBool());
+        QVERIFY(isTorrentLink("magnet:?xt=urn:btih:abc"));
+        QVERIFY(isTorrentLink("https://example.org/a/file.torrent"));
+        QVERIFY(!isTorrentLink("https://example.org/a/file.iso"));
+        QVERIFY(!isTorrentLink("/home/me/file.torrent"));
+    }
+
+    void stateGroups()
+    {
+        QCOMPARE(stateGroup("downloading"), QString("downloading"));
+        QCOMPARE(stateGroup("stalledDL"), QString("downloading"));
+        QCOMPARE(stateGroup("metaDL"), QString("downloading"));
+        QCOMPARE(stateGroup("uploading"), QString("seeding"));
+        QCOMPARE(stateGroup("stalledUP"), QString("seeding"));
+        QCOMPARE(stateGroup("stoppedUP"), QString("stopped"));
+        QCOMPARE(stateGroup("pausedDL"), QString("stopped"));
+        QCOMPARE(stateGroup("checkingDL"), QString("checking"));
+        QCOMPARE(stateGroup("missingFiles"), QString("error"));
+    }
+
+    void maindataMerges()
+    {
+        TorrentModel m;
+        QSignalSpy finished(&m, &TorrentModel::finished);
+        qint64 rid = m.apply(md(R"({"rid": 1, "full_update": true,
+            "torrents": {"aa": {"name": "Alpha", "state": "downloading", "progress": 0.5, "added_on": 10},
+                         "bb": {"name": "Beta", "state": "stalledUP", "progress": 1, "added_on": 20}},
+            "server_state": {"dl_info_speed": 100}})"));
+        QCOMPARE(rid, 1);
+        QCOMPARE(m.rowCount(), 2);
+        QCOMPARE(m.rows(), QStringList({"bb", "aa"})); // newest first
+        QCOMPARE(m.server().value("dl_info_speed").toInt(), 100);
+        QCOMPARE(m.counts().value("downloading").toInt(), 1);
+        QCOMPARE(m.counts().value("seeding").toInt(), 1);
+
+        // A partial update changes only what it names.
+        rid = m.apply(md(R"({"rid": 2, "torrents": {"aa": {"progress": 1, "state": "uploading"}},
+                             "server_state": {"up_info_speed": 5}})"));
+        QCOMPARE(rid, 2);
+        QCOMPARE(m.get("aa").value("name").toString(), QString("Alpha"));
+        QCOMPARE(m.get("aa").value("group").toString(), QString("seeding"));
+        QCOMPARE(m.server().value("dl_info_speed").toInt(), 100);
+        QCOMPARE(finished.count(), 1);
+        QCOMPARE(finished.at(0).at(1).toString(), QString("Alpha"));
+
+        m.setFilter("downloading");
+        QCOMPARE(m.rowCount(), 0);
+        m.setFilter("finished");
+        QCOMPARE(m.rowCount(), 2);
+        m.setFilter("bogus");
+        QCOMPARE(m.filter(), QString("all"));
+        m.setSearch("alp");
+        QCOMPARE(m.rows(), QStringList({"aa"}));
+        m.setSearch("");
+
+        m.apply(md(R"({"rid": 3, "torrents_removed": ["bb"]})"));
+        QCOMPARE(m.rows(), QStringList({"aa"}));
+        // A full update replaces everything.
+        m.apply(md(R"({"rid": 4, "full_update": true, "torrents": {"cc": {"name": "C", "state": "stoppedDL"}}})"));
+        QCOMPARE(m.rows(), QStringList({"cc"}));
+        QCOMPARE(m.counts().value("stopped").toInt(), 1);
+    }
+
+    void defaultApp()
+    {
+        const QString user = m_dir.filePath("mimeapps.list");
+        QFile f(user);
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("[Default Applications]\nx-scheme-handler/magnet=org.qbittorrent.qBittorrent.desktop;\n"
+                "text/plain=org.kde.kate.desktop;\n");
+        f.close();
+        QJsonObject s = defaultStatus(user, {});
+        QCOMPARE(s.value("default").toBool(), false);
+        QCOMPARE(s.value("magnet").toString(), QString("org.qbittorrent.qBittorrent.desktop"));
+        QCOMPARE(makeDefault(user), QString());
+        s = defaultStatus(user, {});
+        QCOMPARE(s.value("default").toBool(), true);
+        QFile back(user);
+        QVERIFY(back.open(QIODevice::ReadOnly));
+        const QString text = QString::fromUtf8(back.readAll());
+        QVERIFY(text.contains("text/plain=org.kde.kate.desktop;"));
+        QVERIFY(text.contains("application/x-bittorrent=io.github.asafelobotomy.uqbit.desktop;"));
+    }
+
+private:
+    QTemporaryDir m_dir;
+};
+
+QTEST_GUILESS_MAIN(TstCore)
+#include "tst_core.moc"

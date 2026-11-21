@@ -1,0 +1,73 @@
+name: Release
+
+# A tag v<version> (made by tag-release.yml when a version bump lands on main, or pushed by hand)
+# builds and tests uqbit in Arch, checks the tag matches VERSION, and publishes a GitHub release
+# with the source PKGBUILD (checksum filled in) and SHA256SUMS. The `aur` job writes the AUR
+# files; they are pushed to the AUR by hand (the AUR key stays on the maintainer's machine).
+on:
+  push:
+    tags: ['v*']
+  # Started by tag-release.yml on the tag it creates (a tag made with GITHUB_TOKEN triggers no push
+  # event), or by hand on an existing tag.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - run: pacman -Syu --noconfirm --needed base-devel git github-cli curl cmake ninja qt6-base qt6-declarative qt6-svg qt6-tools
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check the version
+        run: |
+          want=${GITHUB_REF_NAME#v}
+          have=$(head -n1 VERSION | tr -d '[:space:]')
+          [ "$want" = "$have" ] || { echo "::error::tag $want but VERSION says $have"; exit 1; }
+      - name: Build and test
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+      - name: Collect artifacts
+        run: |
+          v=${GITHUB_REF_NAME#v}
+          mkdir -p dist
+          # The checksum must be of the tarball the AUR source line downloads: GitHub's own.
+          curl -fsSL -o "dist/uqbit-$v.tar.gz" "https://github.com/$GITHUB_REPOSITORY/archive/refs/tags/$GITHUB_REF_NAME.tar.gz"
+          sed -e "s/^pkgver=.*/pkgver=$v/" packaging/aur/uqbit/PKGBUILD > dist/PKGBUILD
+          sum=$(sha256sum "dist/uqbit-$v.tar.gz" | cut -d' ' -f1)
+          sed -i "s/^sha256sums=.*/sha256sums=('$sum')/" dist/PKGBUILD
+          (cd dist && sha256sum PKGBUILD uqbit-* > SHA256SUMS)
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "uqbit ${GITHUB_REF_NAME#v}" --generate-notes dist/*
+
+  # The AUR package's files for this release (scripts/aur-files.sh): the PKGBUILD with the
+  # version and the checksum of GitHub's archive of the tag filled in, and its .SRCINFO.
+  aur:
+    needs: release
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: false
+      - name: Write the AUR files
+        env:
+          TAG: ${{ github.ref_name }}
+        run: scripts/aur-files.sh "$TAG"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: aur
+          path: aur/
+          include-hidden-files: true
+          if-no-files-found: ignore

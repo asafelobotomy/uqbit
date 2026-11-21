@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.asafelobotomy.uqbit</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>uQbit</name>
+  <summary>Torrent client that follows the uQ theme</summary>
+  <description>
+    <p>uQbit downloads and shares torrents with qBittorrent's engine (qbittorrent-nox) running in
+    the background, in a window that follows uQ's theme live. It opens magnet links and .torrent
+    files, keeps seeding after the window closes if you want it to, and tells you when a download
+    finishes.</p>
+  </description>
+  <launchable type="desktop-id">io.github.asafelobotomy.uqbit.desktop</launchable>
+  <url type="homepage">https://github.com/asafelobotomy/uqbit</url>
+  <developer id="io.github.asafelobotomy">
+    <name>asafelobotomy</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <provides>
+    <mediatype>application/x-bittorrent</mediatype>
+    <mediatype>x-scheme-handler/magnet</mediatype>
+  </provides>
+  <releases>
+    <release version="0.1.0" date="2026-11-21"/>
+  </releases>
+</component>
