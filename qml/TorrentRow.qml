@@ -42,6 +42,7 @@ AbstractButton {
     background: Rectangle {
         radius: Theme.radius
         color: row.current ? Qt.alpha(Theme.accent, 0.13) : row.hovered ? Qt.alpha(Theme.text, 0.05) : Theme.surface
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
         border.color: row.current ? Qt.alpha(Theme.accent, 0.55) : Qt.alpha(Theme.border, 0.35)
         border.width: 1
     }

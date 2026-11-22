@@ -126,6 +126,7 @@ ColumnLayout {
                 height: rowLayout.implicitHeight + 18
                 radius: Theme.radius
                 color: hover.hovered ? Qt.alpha(Theme.text, 0.05) : Theme.surface
+                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                 border.color: Qt.alpha(Theme.border, 0.5)
                 HoverHandler { id: hover }
                 RowLayout {

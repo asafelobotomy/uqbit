@@ -14,6 +14,6 @@ Rectangle {
         height: parent.height
         radius: parent.radius
         color: line.tint
-        Behavior on width { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+        Behavior on width { NumberAnimation { duration: Theme.motionSlow; easing.type: Easing.OutCubic } }
     }
 }
