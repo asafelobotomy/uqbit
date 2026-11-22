@@ -17,6 +17,8 @@ Tabs in uQ Settings, startup and the tray.
   **minimise to the tray** (`minimize_to_tray`) hide the window there instead. With no tray to
   hold it, closing quits and a hidden start opens the window, so uQbit is never out of reach.
 - uQbit's window is now a QApplication (Qt Widgets, part of qt6-base) for the tray menu.
+- Moves like the rest of uQ: uQ's motion speeds and easing for the switch, toast, buttons and
+  progress line, and colours fade on hover.
 
 ## 0.3.0 — 2026-11-22
 
