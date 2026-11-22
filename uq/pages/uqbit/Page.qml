@@ -223,6 +223,21 @@ SettingsPage {
             }
         }
 
+        SettingsCard {
+            title: "Search"
+            iconName: "system-search"
+
+            SwitchRow {
+                settingId: "import_plugins"
+                label: "Use qBittorrent's search plugins too"
+                help: "Plugins in qBittorrent's plugin folder (put there by qBittorrent or qbit-plugin-dl) are added to uQbit and kept up to date."
+                highlight: page.highlight
+                value: page.value("import_plugins") === true
+                enabled: page.ready
+                onChosen: v => page.setKey("import_plugins", Logic.boolArg(v))
+            }
+        }
+
     }
 
     SettingsTab {

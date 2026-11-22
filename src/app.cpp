@@ -62,6 +62,10 @@ App::App(const QStringList &initial, QObject *parent) : QObject(parent), m_initi
     m_protectTimer.setInterval(5000);
     connect(&m_protectTimer, &QTimer::timeout, this, &App::checkProtection);
     m_protectTimer.start();
+    // qBittorrent's plugin folder: a quick look (sizes and times) every 10 s.
+    m_importTimer.setInterval(10000);
+    connect(&m_importTimer, &QTimer::timeout, this, &App::importQbtPlugins);
+    m_importTimer.start();
     m_searchTimer.setInterval(1000);
     connect(&m_searchTimer, &QTimer::timeout, this, &App::pollSearch);
 

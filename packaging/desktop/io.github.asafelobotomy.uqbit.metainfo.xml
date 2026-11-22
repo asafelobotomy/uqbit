@@ -22,6 +22,9 @@
     <mediatype>x-scheme-handler/magnet</mediatype>
   </provides>
   <releases>
+    <release version="0.6.0" date="2026-11-22">
+      <description><p>Search plugins in qBittorrent's plugin folder, such as the ones qbit-plugin-dl installs, show up in uQbit by themselves.</p></description>
+    </release>
     <release version="0.5.1" date="2026-11-22">
       <description><p>Crashes and engine problems show up in uQ's Settings, with a report to copy.</p></description>
     </release>

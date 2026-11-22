@@ -1,6 +1,7 @@
 // The App's search: qBittorrent's search plugins, run by the engine (they need Python), and
 // the plugins themselves (install, turn on or off, update, remove).
 #include "app.h"
+#include "plugins.h"
 
 #include <QDesktopServices>
 #include <QJsonArray>
@@ -230,6 +231,7 @@ void App::refreshPlugins()
         if (!r.ok())
             return;
         QVariantList list;
+        const QJsonObject imported = importedPlugins();
         for (const QJsonValue &v : QJsonDocument::fromJson(r.body).array()) {
             const QJsonObject p = v.toObject();
             QStringList cats;
@@ -240,6 +242,7 @@ void App::refreshPlugins()
                                 {"version", p.value("version").toString()},
                                 {"enabled", p.value("enabled").toBool()},
                                 {"url", p.value("url").toString()},
+                                {"imported", imported.contains(p.value("name").toString())},
                                 {"categories", cats}};
         }
         std::sort(list.begin(), list.end(), [](const QVariant &a, const QVariant &b) {
@@ -310,6 +313,23 @@ void App::enablePlugin(const QString &name, bool on)
     form.addQueryItem("names", name);
     form.addQueryItem("enable", on ? "true" : "false");
     pluginCall("search/enablePlugin", form, QString());
+}
+
+void App::importQbtPlugins()
+{
+    if (!m_client || m_status != "ready" || m_importing || !m_config.boolean("import_plugins"))
+        return;
+    m_importing = true;
+    uqbit::importPlugins(m_client, [this](const ImportResult &r) {
+        m_importing = false;
+        if (r.added.isEmpty() && r.removed.isEmpty())
+            return;
+        // The engine loads new plugins in the background: look again in a moment.
+        for (int ms : {700, 2500, 6000})
+            QTimer::singleShot(ms, this, &App::refreshPlugins);
+        if (!r.added.isEmpty())
+            emit notice(tr("Brought in %n search plugin(s) from qBittorrent", "", int(r.added.size())));
+    });
 }
 
 void App::updatePlugins()

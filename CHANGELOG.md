@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 — 2026-11-22
+
+- **qBittorrent's search plugins work in uQbit.** uQbit's engine has a profile of its own, so
+  plugins installed into qBittorrent's plugin folder (by qBittorrent, or by tools such as
+  qbit-plugin-dl) never reached it. uQbit now brings them in by itself: it looks at
+  `~/.local/share/qBittorrent/nova3/engines` (and the Flatpak's and the old `data/` path) every
+  10 seconds, installs new or changed plugins through the engine (a copy goes through uQbit's
+  profile, so the sandboxed engine never reads your other folders) and removes the ones it
+  brought in once they are deleted there. A plugin of the same name that you installed in
+  uQbit is left alone. On by default (`import_plugins`, the Search card under General in uQ
+  Settings); the Plugins sheet marks them "from qBittorrent's plugin folder". `uqbit plugins
+  status|import`.
+
 ## 0.5.1 — 2026-11-22
 
 - **uQbit's problems show in uQ.** uQbit uses uQ's shared uq-diag module (`src/uqdiag.*`, uq-diag 1.0.0): a crash of the window or the CLI leaves a crash record (with a backtrace) that uQ 0.3.35 lists on Settings › Problems with a report to copy, and the engine's start-up errors log in uQ's format with codes (`UQBIT-001` the engine isn't installed, `UQBIT-002` its profile couldn't be set up, `UQBIT-003` it couldn't start) that `uqctl explain`, `uqctl log` (which reads `uqbit-engine.service`) and the Problems page explain from `/usr/share/uq/diag/uqbit.toml`. CI checks the vendored copy and that the codes and the list agree.
