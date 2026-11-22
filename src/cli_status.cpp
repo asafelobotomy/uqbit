@@ -41,7 +41,8 @@ static QJsonObject status(const Config &cfg)
     const VpnState vpn = vpnState(cfg);
     QJsonObject out{{"encryption", cfg.text("encryption")},
                     {"anonymous_mode", cfg.boolean("anonymous_mode")},
-                    {"blocklist", blocklistJson(cfg)}};
+                    {"blocklist", blocklistJson(cfg)},
+                    {"trackers", trackersJson(cfg)}};
     auto finish = [&](const QString &engine, const QString &bound, bool known) {
         out.insert("engine", engine);
         const QJsonObject v = vpnJson(vpn, bound, known);

@@ -2,7 +2,7 @@
 
 | Path | What |
 |---|---|
-| `src/config, engine, client, torrents, torrentfile, defaultapp, notify, privacy, autostart, cli, cli_status` | `uqbit_core`: no window. The CLI and `tests/core` use only this |
+| `src/config, engine, client, torrents, torrentfile, defaultapp, notify, privacy, autostart, trackers, cli, cli_status, cli_trackers` | `uqbit_core`: no window. The CLI and `tests/core` use only this |
 | `src/engine` | the engine's profile, WebUI password (PBKDF2 hash like qBittorrent's), start/stop through systemd or detached |
 | `src/client` | qBittorrent Web API v2 client (logs in by itself; `wait()` for the CLI) |
 | `src/torrents` | `TorrentModel`: merges sync/maindata, filters and searches |

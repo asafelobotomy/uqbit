@@ -1,4 +1,5 @@
 #include "client.h"
+#include "trackers.h"
 
 #include "engine.h"
 #include "privacy.h"
@@ -377,6 +378,10 @@ QJsonObject preferencesFor(const Config &config, const QString &self)
         prefs.insert("ip_filter_path", list);
     if (!incomplete.isEmpty())
         prefs.insert("temp_path", incomplete);
+    // Tracker lists: what uQbit merged from them last (trackers.cpp keeps it fresh).
+    const QStringList trackers = trackerListUrls(config).isEmpty() ? QStringList() : storedTrackers();
+    prefs.insert("add_trackers_enabled", !trackers.isEmpty());
+    prefs.insert("add_trackers", trackers.join('\n'));
     return prefs;
 }
 

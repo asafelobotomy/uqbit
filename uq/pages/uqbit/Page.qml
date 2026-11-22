@@ -95,7 +95,7 @@ SettingsPage {
             page.workingKey = "";
             if (r.error)
                 note(key, Logic.failure(r));
-            if (["start_on_login", "launch_on_login", "vpn_only", "vpn_interface", "download_folder", "incomplete_folder", "watch_folder"].indexOf(key) >= 0)
+            if (["start_on_login", "launch_on_login", "tracker_lists", "vpn_only", "vpn_interface", "download_folder", "incomplete_folder", "watch_folder"].indexOf(key) >= 0)
                 readEngine();
         };
         if (value === "")
@@ -113,7 +113,7 @@ SettingsPage {
             page.workingKey = "";
             if (r.error)
                 note(key, Logic.failure(r));
-            if (key === "engine" || key === "blocklist")
+            if (key === "engine" || key === "blocklist" || key === "tracker_lists")
                 readEngine();
         });
     }
@@ -244,6 +244,8 @@ SettingsPage {
         iconName: "network-transmit-receive"
 
         QueueCard { page: page }
+
+        TrackersCard { page: page }
 
         SettingsCard {
             title: "Speed"

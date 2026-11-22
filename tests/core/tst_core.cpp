@@ -7,6 +7,7 @@
 #include "torrentfile.h"
 #include "torrents.h"
 #include "autostart.h"
+#include "trackers.h"
 
 #include <QDir>
 #include <QFile>
@@ -172,6 +173,37 @@ private slots:
         QCOMPARE(p.value("torrent_content_layout").toString(), QString("Original"));
         QCOMPARE(p.value("max_ratio_act").toInt(), 0);
         QCOMPARE(p.value("max_seeding_time_enabled").toBool(), false);
+    }
+
+    void trackerLists()
+    {
+        const QStringList t = parseTrackers("# best\nudp://tracker.example.org:1337/announce\n\n"
+                                            "udp://tracker.example.org:1337/announce\n"
+                                            "https://t.example.net/announce \r\n"
+                                            "wss://w.example.com/announce\nftp://no.example/x\n"
+                                            "not a tracker\nhttp://\nudp://bad host/announce\n");
+        QCOMPARE(t, (QStringList{"udp://tracker.example.org:1337/announce",
+                                 "https://t.example.net/announce", "wss://w.example.com/announce"}));
+        Config c(m_dir.filePath("trackers.json"));
+        QCOMPARE(trackerListUrls(c), QStringList());
+        QVERIFY(!c.set("tracker_lists", "http://plain.example/list.txt").isEmpty());
+        QVERIFY(!c.set("tracker_lists", "https://a.example/x\nhttps://b.example/y").isEmpty());
+        QCOMPARE(c.set("tracker_lists", "https://a.example/best.txt https://b.example/all.txt https://a.example/best.txt"), QString());
+        QCOMPARE(trackerListUrls(c), (QStringList{"https://a.example/best.txt", "https://b.example/all.txt"}));
+        // Nothing stored yet: the engine adds nothing.
+        QFile::remove(trackersPath());
+        QVERIFY(trackersStale());
+        QJsonObject p = preferencesFor(c, "/usr/bin/uqbit");
+        QCOMPARE(p.value("add_trackers_enabled").toBool(), false);
+        QVERIFY(storeTrackers(t));
+        QVERIFY(!trackersStale());
+        QCOMPARE(storedTrackers(), t);
+        p = preferencesFor(c, "/usr/bin/uqbit");
+        QCOMPARE(p.value("add_trackers_enabled").toBool(), true);
+        QCOMPARE(p.value("add_trackers").toString(), t.join('\n'));
+        // Lists turned off: the stored ones stop being added.
+        c.reset("tracker_lists");
+        QCOMPARE(preferencesFor(c, "/usr/bin/uqbit").value("add_trackers_enabled").toBool(), false);
     }
 
     void launchOnLogin()

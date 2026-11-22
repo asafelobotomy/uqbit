@@ -189,3 +189,37 @@ function trayLine(values) {
         return "No tray icon: closing the window quits uQbit.";
     return "uQbit shows an icon in the tray while it runs: click it to show or hide the window, or open its menu to pause, resume or quit.";
 }
+
+/// The tracker list links in the `tracker_lists` setting (space-separated).
+function trackerUrls(value) {
+    return String(value || "").split(" ").filter(u => u !== "");
+}
+
+/// The setting with one more list link; null when the link isn't an https:// one uqbit takes
+/// or there are already 10.
+function addTrackerList(value, typed) {
+    const url = String(typed || "").trim();
+    const have = trackerUrls(value);
+    if (!/^https:\/\/[A-Za-z0-9._~:\/?#@!$&'()*+,;=%-]{1,500}$/.test(url) || have.length >= 10)
+        return null;
+    if (have.indexOf(url) >= 0)
+        return null;
+    return have.concat([url]).join(" ");
+}
+
+/// The setting without that link ("" when none are left).
+function removeTrackerList(value, url) {
+    return trackerUrls(value).filter(u => u !== url).join(" ");
+}
+
+/// `uqbit status --json` -> the line under the tracker lists.
+function trackersLine(result) {
+    const t = result && result.output && result.output.trackers;
+    if (!t || !t.lists || t.lists.length === 0)
+        return "No lists: torrents use only their own trackers.";
+    if (!t.count)
+        return "Not downloaded yet.";
+    const when = t.updated ? String(t.updated).slice(0, 10) : "";
+    return t.count + " trackers from " + t.lists.length + (t.lists.length === 1 ? " list" : " lists")
+           + " are added to new public torrents" + (when ? "; updated " + when : "") + ", refreshed daily.";
+}
