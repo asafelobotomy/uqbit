@@ -1,6 +1,7 @@
 // The App's privacy side: the VPN kill switch kept bound to the right interface, the
 // blocklist kept fresh, the sandboxed engine given the folders torrents are added to.
 #include "app.h"
+#include "trackers.h"
 #include "engine.h"
 #include "privacy.h"
 
@@ -23,6 +24,7 @@ void App::setProtection(const QVariantMap &p)
 
 void App::checkProtection()
 {
+    refreshTrackers();
     // Detection may ask NetworkManager (a process): off the window's thread.
     const Config config = m_config;
     QPointer<App> self(this);
@@ -83,6 +85,7 @@ void App::engineReady()
     });
     if (m_config.boolean("blocklist") && blocklistStale())
         updateBlocklist();
+    refreshTrackers();
     refreshPlugins();
     if (m_afterReady) {
         auto then = std::move(m_afterReady);
@@ -110,6 +113,20 @@ void App::updateBlocklist()
             emit notice(e);
         checkProtection();
     });
+}
+
+void App::refreshTrackers()
+{
+    // Daily, and only with lists set; the `config set` that adds a list fetches it at once.
+    // A failed refresh keeps the last list and tries again in an hour, not every 5 s.
+    if (!m_client || m_status != "ready" || m_trackersUpdating || trackerListUrls(m_config).isEmpty()
+        || !trackersStale()
+        || (m_trackersTried.isValid() && m_trackersTried.secsTo(QDateTime::currentDateTime()) < 3600))
+        return;
+    m_trackersUpdating = true;
+    m_trackersTried = QDateTime::currentDateTime();
+    uqbit::updateTrackerLists(m_client, m_config, true,
+                              [this](const QString &, int) { m_trackersUpdating = false; });
 }
 
 QString App::setSetting(const QString &key, const QString &value)

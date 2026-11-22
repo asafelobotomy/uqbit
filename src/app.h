@@ -6,6 +6,7 @@
 #include "theme.h"
 #include "torrents.h"
 
+#include <QDateTime>
 #include <QFileSystemWatcher>
 #include <QObject>
 #include <QPointer>
@@ -175,6 +176,9 @@ private:
     bool m_boundKnown = false;
     bool m_binding = false;
     bool m_blocklistUpdating = false;
+    bool m_trackersUpdating = false;
+    QDateTime m_trackersTried;
+    void refreshTrackers();
     QString m_blocklistError;
     std::function<void()> m_afterReady;
     QTimer m_searchTimer;

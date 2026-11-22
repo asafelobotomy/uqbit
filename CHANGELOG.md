@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 — 2026-11-22
+
+- **Tracker lists.** Add links to public tracker lists (such as ngosang/trackerslist), up to
+  10 of them (`tracker_lists`, space-separated, or the Tracker lists card under Transfers in
+  uQ Settings). uQbit downloads them, merges them without repeats (at most 500 trackers) and
+  has the engine add them to new public torrents, so those find more peers; private torrents
+  keep only their own trackers. They refresh every day (a failed refresh keeps the last list
+  and tries again in an hour). The engine's own "trackers from a URL" takes only one link and
+  needs qBittorrent 5.1, so uQbit does the fetching itself. `uqbit trackers status|update`,
+  and `uqbit status --json` has a `trackers` object.
+
 ## 0.4.0 — 2026-11-22
 
 Tabs in uQ Settings, startup and the tray.

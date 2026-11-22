@@ -88,6 +88,7 @@ uqbit status [--json]                 engine, speeds, counts, VPN and privacy (w
 uqbit pause-all | resume-all
 uqbit show                            open the window
 uqbit blocklist status|update [--json]
+uqbit trackers status|update [--json]  the tracker lists added to new public torrents
 ```
 
 Startup and tray: `launch_on_login`, `start_in_tray`, `close_to_tray`, `minimize_to_tray`
@@ -96,7 +97,8 @@ Startup and tray: `launch_on_login`, `start_in_tray`, `close_to_tray`, `minimize
 Folder settings: `incomplete_folder`, `watch_folder` (empty = off), `content_layout`
 (original/subfolder/no_subfolder), `incomplete_extension`, `preallocate`. Queue and seeding:
 `max_active_downloads`, `max_active_uploads`, `max_active_torrents` (0 = no limit), `seed_time`
-(minutes), `when_seeded` (stop/remove). `uqbit config show` lists every setting with its help.
+(minutes), `when_seeded` (stop/remove). Tracker lists: `tracker_lists` (up to 10 https://
+links, space-separated; refreshed daily, added to new public torrents). `uqbit config show` lists every setting with its help.
 
 Privacy settings: `vpn_only`, `vpn_interface` (empty = find it), `encryption`
 (require/prefer/allow), `anonymous_mode`, `blocklist`, `blocklist_url`.

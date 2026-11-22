@@ -25,9 +25,12 @@ Item {
                             { key: "max_active_uploads", value: 0 }, { key: "max_active_torrents", value: 5 },
                             { key: "seed_time", value: 90 }, { key: "when_seeded", value: "stop" },
                             { key: "launch_on_login", value: false }, { key: "start_in_tray", value: false },
-                            { key: "close_to_tray", value: true }, { key: "minimize_to_tray", value: false }] } },
+                            { key: "close_to_tray", value: true }, { key: "minimize_to_tray", value: false },
+                            { key: "tracker_lists", value: "https://ngosang.github.io/trackerslist/trackers_best.txt" }] } },
                 status: { code: 0, output: { engine: "running", vpn: { required: false, interface: null, up: false, bound: false },
-                          protected: false, blocklist: { on: true, path: "/x/blocklist.p2p", updated: "2026-11-21T23:18:47Z" } } },
+                          protected: false, blocklist: { on: true, path: "/x/blocklist.p2p", updated: "2026-11-21T23:18:47Z" },
+                          trackers: { lists: ["https://ngosang.github.io/trackerslist/trackers_best.txt"], count: 20, updated: "2026-11-22T00:42:10Z" } } },
+                "trackers-update": { code: 0, output: { count: 20 } },
                 "blocklist-update": { code: 0, output: { on: true } },
                 "default-status": { code: 0, output: { desktop_id: "io.github.asafelobotomy.uqbit.desktop",
                                     types: 2, ours: 0, default: false,
@@ -142,10 +145,30 @@ Item {
             compare(fake.calls.find(c => c[1] === "config-set")[2], ["launch_on_login", "true"]);
         }
 
+        function test_tracker_lists() {
+            openTab("Transfers");
+            tryVerify(() => label("20 trackers from 1 list are added to new public torrents; updated 2026-11-22, refreshed daily.") !== null);
+            const field = find(loader.item, i => i.objectName === "tracker-list-field");
+            const add = find(loader.item, i => i.objectName === "tracker-list-add");
+            field.text = "http://plain.example/list.txt";
+            compare(add.enabled, false);
+            field.text = "https://example.org/more.txt";
+            tryVerify(() => add.enabled);
+            add.clicked();
+            tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
+            compare(fake.calls.find(c => c[1] === "config-set")[2],
+                    ["tracker_lists", "https://ngosang.github.io/trackerslist/trackers_best.txt https://example.org/more.txt"]);
+            tryVerify(() => button("Remove") !== null && button("Remove").enabled);
+            button("Remove").clicked();
+            tryVerify(() => fake.calls.some(c => c[1] === "config-reset"));
+            compare(fake.calls.find(c => c[1] === "config-reset")[2], ["tracker_lists"]);
+        }
+
         function test_blocklist_update() {
-            openTab("Privacy");
-            tryVerify(() => button("Update now") !== null && button("Update now").visible);
-            button("Update now").clicked();
+            const tab = openTab("Privacy");
+            const update = () => find(tab, i => i.text === "Update now" && i.hasOwnProperty("checkable"));
+            tryVerify(() => update() !== null && update().visible);
+            update().clicked();
             tryVerify(() => fake.calls.some(c => c[1] === "blocklist-update"));
         }
 

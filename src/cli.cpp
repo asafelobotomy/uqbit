@@ -1,5 +1,6 @@
 #include "cli.h"
 #include "autostart.h"
+#include "trackers.h"
 #include "cli_util.h"
 #include "client.h"
 #include "config.h"
@@ -34,6 +35,8 @@ static const char *kUsage =
     "  uqbit show                          open the window\n"
     "  uqbit blocklist status|update [--json]\n"
     "                                      the peer blocklist; update downloads it now\n"
+    "  uqbit trackers status|update [--json]\n"
+    "                                      the tracker lists (tracker_lists) added to new torrents\n"
     "  uqbit engine status [--json]        is the torrent engine (qbittorrent-nox) running?\n"
     "  uqbit engine start|stop             start or stop it\n"
     "  uqbit engine run                    run it in the foreground (the systemd unit does)\n"
@@ -52,7 +55,7 @@ bool isCliCommand(const QStringList &argsIn)
         return false;
     static const QStringList cmds = {"config",    "default",   "engine",    "add",
                                      "list",      "status",    "pause-all", "resume-all",
-                                     "show",      "blocklist", "notify-finished",
+                                     "show",      "blocklist", "trackers",  "notify-finished",
                                      "--version", "-V",        "--help",    "-h"};
     return cmds.contains(args.first());
 }
@@ -177,6 +180,12 @@ static int cmdConfig(const QStringList &args, bool asJson, QTextStream &out, QTe
                         err << "uqbit: " << ee << '\n';
                 }
             }
+        }
+        // New lists: fetch them now (they refresh daily after that).
+        if (key == "tracker_lists" && !trackerListUrls(cfg).isEmpty()) {
+            const QString te = refreshTrackers(cfg);
+            if (!te.isEmpty())
+                err << "uqbit: " << te << '\n';
         }
         static const QStringList windowOnly{"start_on_login", "webui_port", "launch_on_login",
                                             "start_in_tray", "close_to_tray", "minimize_to_tray"};
@@ -392,6 +401,8 @@ int runCli(const QStringList &argsIn, QTextStream &out, QTextStream &err)
         return cmdShow(err);
     if (cmd == "blocklist")
         return cmdBlocklist(args, asJson, out, err);
+    if (cmd == "trackers")
+        return cmdTrackers(args, asJson, out, err);
     if (cmd == "notify-finished" && args.size() >= 2) {
         notifyFinished(args.at(1), args.value(2));
         return 0;

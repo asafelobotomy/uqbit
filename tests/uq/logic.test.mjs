@@ -136,3 +136,20 @@ test("trayLine", () => {
   assert.match(L.trayLine({ launch_on_login: true, start_in_tray: true }), /icon in the tray/);
   assert.match(L.trayLine({ close_to_tray: true }), /icon in the tray/);
 });
+
+test("tracker lists", () => {
+  const best = "https://ngosang.github.io/trackerslist/trackers_best.txt";
+  assert.deepEqual(L.trackerUrls(""), []);
+  assert.equal(L.addTrackerList("", best), best);
+  assert.equal(L.addTrackerList(best, " https://x.example/all.txt "), best + " https://x.example/all.txt");
+  assert.equal(L.addTrackerList(best, best), null);
+  assert.equal(L.addTrackerList("", "http://x.example/a.txt"), null);
+  assert.equal(L.addTrackerList("", "https://x.example/a b.txt"), null);
+  const ten = Array.from({ length: 10 }, (_, i) => "https://x.example/" + i).join(" ");
+  assert.equal(L.addTrackerList(ten, "https://y.example/z"), null);
+  assert.equal(L.removeTrackerList(best + " https://x.example/all.txt", best), "https://x.example/all.txt");
+  assert.equal(L.removeTrackerList(best, best), "");
+  assert.match(L.trackersLine(null), /^No lists/);
+  assert.equal(L.trackersLine({ output: { trackers: { lists: [best, "https://x"], count: 57, updated: "2026-11-22T00:42:10Z" } } }),
+    "57 trackers from 2 lists are added to new public torrents; updated 2026-11-22, refreshed daily.");
+});

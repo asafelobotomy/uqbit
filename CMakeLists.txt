@@ -28,7 +28,8 @@ add_library(uqbit_core STATIC
     src/theme.h src/uqtheme.cpp src/uqtheme.h
     src/privacy.cpp src/privacy.h
     src/autostart.cpp src/autostart.h
-    src/cli.cpp src/cli.h src/cli_util.h src/cli_status.cpp
+    src/trackers.cpp src/trackers.h
+    src/cli.cpp src/cli.h src/cli_util.h src/cli_status.cpp src/cli_trackers.cpp
 )
 target_include_directories(uqbit_core PUBLIC src)
 target_compile_definitions(uqbit_core PUBLIC UQBIT_VERSION="${PROJECT_VERSION}")
