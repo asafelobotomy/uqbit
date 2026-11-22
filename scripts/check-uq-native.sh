@@ -42,7 +42,7 @@ declare -A SUMS=(
     [uq-diag/1.0.1/uq_diag.rs]=a3480bcbd583420923e1cffced45c9be48190fc99b22d60828d2f50ba3123dbc
     [uq-diag/1.0.1/uqdiag.cpp]=b542647423d06e451e592188f255900a7b39f6ca65ee1f55e8e1279a1d83dd48
     [uq-diag/1.0.1/uqdiag.h]=94e92614fdb20e6a67203e7fca09685afb35475bc3272611cb0c26c4f279620b
-    [uq-consts/1.0.0/UqThemeBase.qml]=9ae8fca882e325c39f4ca436167afe627c998fc45224c74a6858020032f6a6c8
+    [uq-consts/1.0.0/UqThemeBase.qml]=dcc514baefdde31ebec6ea26538d6acc5678d2596369709283cfde16e794468e
     [uq-consts/1.0.0/uq-consts.js]=fadff2b545eb630a9a11fe3a11585a57eb4bc58857eea3bea48ed983003e7e2a
     [uq-consts/1.0.0/uq-consts.sh]=dc24e9982ae565c7f97ce4ffa5ce09fe3b4f1a19573417bfc4383283f3e6d7b1
     [uq-consts/1.0.0/uq_consts.py]=30e69303c9dda8beb22776d6108637df8e6571d77b4a102e05a8b12d926737a1
@@ -108,7 +108,9 @@ if [ -n "$sync" ]; then
         fi
     done
     me=$(dirname "$0")/check-uq-native.sh
-    if [ -r "$sync/native/check-uq-native.sh" ] && ! cmp -s "$sync/native/check-uq-native.sh" "$me"; then
+    # sha256sum, not cmp: a bare Arch container has coreutils but not diffutils
+    if [ -r "$sync/native/check-uq-native.sh" ] &&
+        [ "$(sha256sum < "$sync/native/check-uq-native.sh")" != "$(sha256sum < "$me")" ]; then
         cp "$sync/native/check-uq-native.sh" "$me"
         echo "check-uq-native: updated $me; run it again" >&2
         exit 1
