@@ -26,6 +26,8 @@ on 127.0.0.1, so you get qBittorrent's engine with a window that looks like the 
   `uqbit notify-finished`).
 - **Speed limits and a seeding ratio** that stops a torrent once it has shared enough.
 - **One window**: opening a link while uQbit is open adds it in that window.
+- **Startup and the tray**: opens at login if you like, in the tray if you like; closing or
+  minimising can hide the window to a tray icon (click to show, menu to pause, resume or quit).
 - **Search** with qBittorrent's search plugins (run by the engine; needs Python 3): results
   sorted by seeds, added with one click. The Plugins sheet installs the official plugins,
   turns them on or off, updates them, removes them, or installs one from an https:// link.
@@ -39,8 +41,9 @@ on 127.0.0.1, so you get qBittorrent's engine with a window that looks like the 
 - **uQ Status icon and quick tile**: speeds, counts and the VPN state in uQ's bar, with pause
   and resume all.
 - **uQ Settings page** (Apps › Torrents): default app, engine status with start and stop,
-  start on login, adding, folders (save, unfinished, watched), the queue and seeding limits,
-  privacy and VPN, speed limits.
+  tabs for General (default app, engine, adding), Startup (login, tray), Folders (save,
+  unfinished, watched), Transfers (queue, seeding, speed) and Privacy (VPN, encryption,
+  blocklist).
 
 ![Search](docs/screenshots/search.png)
 ![Search plugins](docs/screenshots/plugins.png)
@@ -68,6 +71,7 @@ on 127.0.0.1, so you get qBittorrent's engine with a window that looks like the 
 
 ```
 uqbit [MAGNET|FILE.torrent|URL]...    open the window (and add these)
+uqbit --hidden                        start in the tray (what the login entry runs)
 uqbit add [--folder DIR] [--stopped] MAGNET|FILE|URL...
 uqbit list [--json]                   the torrents, newest first
 uqbit engine status|start|stop [--json]
@@ -85,6 +89,9 @@ uqbit pause-all | resume-all
 uqbit show                            open the window
 uqbit blocklist status|update [--json]
 ```
+
+Startup and tray: `launch_on_login`, `start_in_tray`, `close_to_tray`, `minimize_to_tray`
+(`start_on_login` starts only the engine).
 
 Folder settings: `incomplete_folder`, `watch_folder` (empty = off), `content_layout`
 (original/subfolder/no_subfolder), `incomplete_extension`, `preallocate`. Queue and seeding:

@@ -30,6 +30,26 @@ label = "Start on login"
 keywords = ["autostart", "login", "boot", "systemd", "background"]
 
 [[setting]]
+id = "launch_on_login"
+label = "Open uQbit when you log in"
+keywords = ["startup", "autostart", "login", "boot", "run on startup", "launch"]
+
+[[setting]]
+id = "start_in_tray"
+label = "Start in the tray"
+keywords = ["tray", "minimised", "hidden", "startup", "background", "system tray"]
+
+[[setting]]
+id = "close_to_tray"
+label = "Close to the tray"
+keywords = ["tray", "close", "exit", "background", "system tray", "keep running"]
+
+[[setting]]
+id = "minimize_to_tray"
+label = "Minimise to the tray"
+keywords = ["tray", "minimise", "minimize", "hide", "system tray"]
+
+[[setting]]
 id = "download_folder"
 label = "Download folder"
 keywords = ["downloads", "save path", "folder", "location"]
@@ -188,14 +208,14 @@ id = "config-set"
 argv = ["/usr/bin/uqbit", "config", "set"]
 output = "text"
 timeout_ms = 45000
-args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist|incomplete_folder|watch_folder|content_layout|incomplete_extension|preallocate|max_active_downloads|max_active_uploads|max_active_torrents|seed_time|when_seeded)$" }, { name = "value", pattern = "^(true|false|[0-9]{1,7}|~?/[A-Za-z0-9 ._+@'()/-]{0,300}|require|prefer|allow|original|subfolder|no_subfolder|stop|remove|[A-Za-z][A-Za-z0-9_.:@-]{0,14})$" }]
+args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist|incomplete_folder|watch_folder|content_layout|incomplete_extension|preallocate|max_active_downloads|max_active_uploads|max_active_torrents|seed_time|when_seeded|launch_on_login|start_in_tray|close_to_tray|minimize_to_tray)$" }, { name = "value", pattern = "^(true|false|[0-9]{1,7}|~?/[A-Za-z0-9 ._+@'()/-]{0,300}|require|prefer|allow|original|subfolder|no_subfolder|stop|remove|[A-Za-z][A-Za-z0-9_.:@-]{0,14})$" }]
 
 [[command]]
 id = "config-reset"
 argv = ["/usr/bin/uqbit", "config", "reset"]
 output = "text"
 timeout_ms = 45000
-args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist|incomplete_folder|watch_folder|content_layout|incomplete_extension|preallocate|max_active_downloads|max_active_uploads|max_active_torrents|seed_time|when_seeded)$" }]
+args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist|incomplete_folder|watch_folder|content_layout|incomplete_extension|preallocate|max_active_downloads|max_active_uploads|max_active_torrents|seed_time|when_seeded|launch_on_login|start_in_tray|close_to_tray|minimize_to_tray)$" }]
 
 # Sets uQbit for application/x-bittorrent and magnet: links in ~/.config/mimeapps.list.
 [[command]]

@@ -6,6 +6,7 @@
 #include "engine.h"
 #include "torrentfile.h"
 #include "torrents.h"
+#include "autostart.h"
 
 #include <QDir>
 #include <QFile>
@@ -171,6 +172,33 @@ private slots:
         QCOMPARE(p.value("torrent_content_layout").toString(), QString("Original"));
         QCOMPARE(p.value("max_ratio_act").toInt(), 0);
         QCOMPARE(p.value("max_seeding_time_enabled").toBool(), false);
+    }
+
+    void launchOnLogin()
+    {
+        QVERIFY(autostartPath().startsWith(m_dir.filePath("config") + "/autostart/"));
+        QVERIFY(!launchesOnLogin());
+        QCOMPARE(setLaunchOnLogin(true, false), QString());
+        QVERIFY(launchesOnLogin());
+        QFile f(autostartPath());
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QByteArray plain = f.readAll();
+        f.close();
+        QVERIFY(plain.contains("\nExec=uqbit\n"));
+        QCOMPARE(setLaunchOnLogin(true, true), QString());
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QVERIFY(f.readAll().contains("\nExec=uqbit --hidden\n"));
+        f.close();
+        QCOMPARE(setLaunchOnLogin(false, true), QString());
+        QVERIFY(!QFile::exists(autostartPath()));
+        // Someone else's file of that name stays.
+        QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("[Desktop Entry]\nExec=other\n");
+        f.close();
+        QVERIFY(!setLaunchOnLogin(true, false).isEmpty());
+        QCOMPARE(setLaunchOnLogin(false, false), QString());
+        QVERIFY(QFile::exists(autostartPath()));
+        QFile::remove(autostartPath());
     }
 
     void folderAndQueuePreferences()

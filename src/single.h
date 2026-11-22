@@ -32,5 +32,7 @@ private:
 QStringList absoluteInputs(const QStringList &inputs);
 /// Hands `inputs` to the running uQbit. False when there is none.
 bool forwardToRunning(const QStringList &inputs);
+/// Whether a uQbit window already runs in this session.
+bool isRunning();
 
 } // namespace uqbit

@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "autostart.h"
 #include "cli_util.h"
 #include "client.h"
 #include "config.h"
@@ -142,6 +143,15 @@ static int cmdConfig(const QStringList &args, bool asJson, QTextStream &out, QTe
         const QString e = sub == "set" ? cfg.set(key, args.at(3)) : cfg.reset(key);
         if (!e.isEmpty())
             return fail(err, e, 2);
+        if (key == "launch_on_login" || key == "start_in_tray") {
+            const QString ae = setLaunchOnLogin(cfg.boolean("launch_on_login"),
+                                                cfg.boolean("start_in_tray"));
+            if (!ae.isEmpty()) {
+                if (key == "launch_on_login")
+                    cfg.set(key, cfg.boolean(key) ? "false" : "true");
+                return fail(err, ae);
+            }
+        }
         if (key == "start_on_login" && cfg.boolean(key) != wasOn) {
             const QString se = setStartOnLogin(cfg.boolean(key));
             if (!se.isEmpty()) {
@@ -168,7 +178,9 @@ static int cmdConfig(const QStringList &args, bool asJson, QTextStream &out, QTe
                 }
             }
         }
-        if (key != "start_on_login" && key != "webui_port")
+        static const QStringList windowOnly{"start_on_login", "webui_port", "launch_on_login",
+                                            "start_in_tray", "close_to_tray", "minimize_to_tray"};
+        if (!windowOnly.contains(key))
             applyToEngine(cfg);
         out << key << " = " << cfg.value(key).toString() << (sub == "reset" ? " (default)\n" : "\n");
         return 0;

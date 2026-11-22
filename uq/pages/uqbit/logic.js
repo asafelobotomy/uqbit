@@ -181,3 +181,11 @@ function minutesLabel(minutes) {
     const d = Math.floor(n / 1440), h = Math.floor((n % 1440) / 60), m = n % 60;
     return [d ? d + " d" : "", h ? h + " h" : "", m ? m + " min" : ""].filter(s => s !== "").join(" ");
 }
+
+/// The line under the tray switches: what uQbit's tray icon does, from the settings.
+function trayLine(values) {
+    const v = values || {};
+    if (!v.close_to_tray && !v.minimize_to_tray && !(v.launch_on_login && v.start_in_tray))
+        return "No tray icon: closing the window quits uQbit.";
+    return "uQbit shows an icon in the tray while it runs: click it to show or hide the window, or open its menu to pause, resume or quit.";
+}

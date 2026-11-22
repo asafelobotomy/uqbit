@@ -129,3 +129,10 @@ test("optionalFolder, queueLine, minutesLabel", () => {
   assert.equal(L.minutesLabel(45), "45 min");
   assert.equal(L.minutesLabel(1500), "1 d 1 h");
 });
+
+test("trayLine", () => {
+  assert.match(L.trayLine({}), /^No tray icon/);
+  assert.match(L.trayLine({ launch_on_login: true, start_in_tray: false }), /^No tray icon/);
+  assert.match(L.trayLine({ launch_on_login: true, start_in_tray: true }), /icon in the tray/);
+  assert.match(L.trayLine({ close_to_tray: true }), /icon in the tray/);
+});
