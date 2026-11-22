@@ -9,6 +9,7 @@ Item {
 
     property string settingId
     property string label
+    property string help: ""
     property string highlight
     readonly property bool flashing: highlight !== "" && highlight === settingId
     default property alias content: slot.data

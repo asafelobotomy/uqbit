@@ -63,6 +63,8 @@ const QList<Key> &keys()
         {"tracker_lists", "text", QString(), {},
          QStringLiteral("^(https://[^\\s\\x00-\\x1f]{1,500}( https://[^\\s\\x00-\\x1f]{1,500}){0,9})?$"), 0, 0,
          "Lists of public trackers to add to new public torrents: up to 10 https:// links, separated by spaces (empty: none). Refreshed daily."},
+        {"import_plugins", "bool", true, {}, {}, 0, 0,
+         "Use the search plugins in qBittorrent's plugin folder too (what qBittorrent or qbit-plugin-dl installed there)."},
         {"webui_port", "int", 17845, {}, {}, 1024, 65535,
          "The local port uQbit talks to its engine on (127.0.0.1 only)."},
         {"vpn_only", "bool", false, {}, {}, 0, 0,

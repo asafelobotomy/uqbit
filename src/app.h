@@ -170,6 +170,10 @@ private:
     // search.cpp
     void pollSearch();
     void pluginCall(const QString &path, const QUrlQuery &form, const QString &okText);
+    /// Brings in the plugins in qBittorrent's plugin folder (import_plugins).
+    void importQbtPlugins();
+    QTimer m_importTimer;
+    bool m_importing = false;
     QTimer m_protectTimer;
     QVariantMap m_protection;
     QString m_bound;            // the engine's current_network_interface, as last seen

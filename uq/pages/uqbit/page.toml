@@ -160,6 +160,11 @@ label = "When a torrent is done seeding"
 keywords = ["remove", "stop", "finished", "ratio reached", "auto remove", "clean up"]
 
 [[setting]]
+id = "import_plugins"
+label = "Use qBittorrent's search plugins"
+keywords = ["search plugins", "qbit-plugin-dl", "nova3", "engines", "import", "qBittorrent plugins"]
+
+[[setting]]
 id = "tracker_lists"
 label = "Tracker lists"
 keywords = ["trackers", "tracker list", "trackerslist", "ngosang", "announce", "more peers", "public trackers"]
@@ -213,14 +218,14 @@ id = "config-set"
 argv = ["/usr/bin/uqbit", "config", "set"]
 output = "text"
 timeout_ms = 45000
-args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist|incomplete_folder|watch_folder|content_layout|incomplete_extension|preallocate|max_active_downloads|max_active_uploads|max_active_torrents|seed_time|when_seeded|launch_on_login|start_in_tray|close_to_tray|minimize_to_tray|tracker_lists)$" }, { name = "value", pattern = "^(true|false|[0-9]{1,7}|~?/[A-Za-z0-9 ._+@'()/-]{0,300}|require|prefer|allow|original|subfolder|no_subfolder|stop|remove|https://[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]{1,500}( https://[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]{1,500}){0,9}|[A-Za-z][A-Za-z0-9_.:@-]{0,14})$" }]
+args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist|incomplete_folder|watch_folder|content_layout|incomplete_extension|preallocate|max_active_downloads|max_active_uploads|max_active_torrents|seed_time|when_seeded|launch_on_login|start_in_tray|close_to_tray|minimize_to_tray|tracker_lists|import_plugins)$" }, { name = "value", pattern = "^(true|false|[0-9]{1,7}|~?/[A-Za-z0-9 ._+@'()/-]{0,300}|require|prefer|allow|original|subfolder|no_subfolder|stop|remove|https://[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]{1,500}( https://[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]{1,500}){0,9}|[A-Za-z][A-Za-z0-9_.:@-]{0,14})$" }]
 
 [[command]]
 id = "config-reset"
 argv = ["/usr/bin/uqbit", "config", "reset"]
 output = "text"
 timeout_ms = 45000
-args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist|incomplete_folder|watch_folder|content_layout|incomplete_extension|preallocate|max_active_downloads|max_active_uploads|max_active_torrents|seed_time|when_seeded|launch_on_login|start_in_tray|close_to_tray|minimize_to_tray|tracker_lists)$" }]
+args = [{ name = "key", pattern = "^(download_folder|ask_before_adding|start_added|notify_finished|keep_running|start_on_login|download_limit|upload_limit|seed_ratio|vpn_only|vpn_interface|encryption|anonymous_mode|blocklist|incomplete_folder|watch_folder|content_layout|incomplete_extension|preallocate|max_active_downloads|max_active_uploads|max_active_torrents|seed_time|when_seeded|launch_on_login|start_in_tray|close_to_tray|minimize_to_tray|tracker_lists|import_plugins)$" }]
 
 # Sets uQbit for application/x-bittorrent and magnet: links in ~/.config/mimeapps.list.
 [[command]]

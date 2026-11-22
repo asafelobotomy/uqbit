@@ -107,7 +107,9 @@ Popup {
                                 }
                                 Label {
                                     Layout.fillWidth: true
-                                    text: qsTr("Version %1 · %2").arg(p.modelData.version).arg(p.modelData.url.replace(/^https?:\/\//, "").replace(/\/$/, ""))
+                                    text: p.modelData.imported
+                                          ? qsTr("Version %1 · from qBittorrent's plugin folder").arg(p.modelData.version)
+                                          : qsTr("Version %1 · %2").arg(p.modelData.version).arg(p.modelData.url.replace(/^https?:\/\//, "").replace(/\/$/, ""))
                                     textFormat: Text.PlainText
                                     elide: Text.ElideRight
                                     color: Theme.textMuted
@@ -206,7 +208,10 @@ Popup {
                 }
                 Label {
                     Layout.fillWidth: true
-                    text: qsTr("A plugin is a Python program that the engine runs to search a site. Install only plugins you trust.")
+                    text: (App.settings.import_plugins
+                           ? qsTr("Plugins in qBittorrent's plugin folder (put there by qBittorrent or qbit-plugin-dl) show up here by themselves. ")
+                           : "")
+                          + qsTr("A plugin is a Python program that the engine runs to search a site. Install only plugins you trust.")
                     wrapMode: Text.Wrap
                     color: Theme.textMuted
                     font.family: Theme.fontUi

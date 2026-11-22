@@ -37,6 +37,8 @@ static const char *kUsage =
     "                                      the peer blocklist; update downloads it now\n"
     "  uqbit trackers status|update [--json]\n"
     "                                      the tracker lists (tracker_lists) added to new torrents\n"
+    "  uqbit plugins status|import [--json]\n"
+    "                                      search plugins brought in from qBittorrent's folder\n"
     "  uqbit engine status [--json]        is the torrent engine (qbittorrent-nox) running?\n"
     "  uqbit engine start|stop             start or stop it\n"
     "  uqbit engine run                    run it in the foreground (the systemd unit does)\n"
@@ -55,7 +57,7 @@ bool isCliCommand(const QStringList &argsIn)
         return false;
     static const QStringList cmds = {"config",    "default",   "engine",    "add",
                                      "list",      "status",    "pause-all", "resume-all",
-                                     "show",      "blocklist", "trackers",  "notify-finished",
+                                     "show",      "blocklist", "trackers",  "plugins", "notify-finished",
                                      "--version", "-V",        "--help",    "-h"};
     return cmds.contains(args.first());
 }
@@ -403,6 +405,8 @@ int runCli(const QStringList &argsIn, QTextStream &out, QTextStream &err)
         return cmdBlocklist(args, asJson, out, err);
     if (cmd == "trackers")
         return cmdTrackers(args, asJson, out, err);
+    if (cmd == "plugins")
+        return cmdPlugins(args, asJson, out, err);
     if (cmd == "notify-finished" && args.size() >= 2) {
         notifyFinished(args.at(1), args.value(2));
         return 0;
