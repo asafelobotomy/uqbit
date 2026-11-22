@@ -42,6 +42,13 @@ QStringList absoluteInputs(const QStringList &inputs)
     return out;
 }
 
+bool isRunning()
+{
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    return bus.isConnected() && bus.interface()
+           && bus.interface()->isServiceRegistered(QString::fromLatin1(kBusName)).value();
+}
+
 bool forwardToRunning(const QStringList &inputs)
 {
     QDBusConnection bus = QDBusConnection::sessionBus();

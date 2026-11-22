@@ -23,7 +23,9 @@ Item {
                             { key: "content_layout", value: "original" }, { key: "incomplete_extension", value: false },
                             { key: "preallocate", value: false }, { key: "max_active_downloads", value: 3 },
                             { key: "max_active_uploads", value: 0 }, { key: "max_active_torrents", value: 5 },
-                            { key: "seed_time", value: 90 }, { key: "when_seeded", value: "stop" }] } },
+                            { key: "seed_time", value: 90 }, { key: "when_seeded", value: "stop" },
+                            { key: "launch_on_login", value: false }, { key: "start_in_tray", value: false },
+                            { key: "close_to_tray", value: true }, { key: "minimize_to_tray", value: false }] } },
                 status: { code: 0, output: { engine: "running", vpn: { required: false, interface: null, up: false, bound: false },
                           protected: false, blocklist: { on: true, path: "/x/blocklist.p2p", updated: "2026-11-21T23:18:47Z" } } },
                 "blocklist-update": { code: 0, output: { on: true } },
@@ -67,6 +69,11 @@ Item {
     }
     function row(id) { return find(loader.item, i => i.settingId === id); }
     function button(text) { return find(loader.item, i => i.text === text && i.hasOwnProperty("checkable")); }
+    function openTab(title) {
+        const tab = loader.item.tabList.find(t => t.title === title);
+        loader.item.show(tab);
+        return tab;
+    }
     function label(text) { return find(loader.item, i => i.text === text && i.hasOwnProperty("wrapMode")); }
 
     TestCase {
@@ -118,7 +125,25 @@ Item {
             compare(fake.calls.find(c => c[1] === "config-set")[2], ["encryption", "prefer"]);
         }
 
+        function test_tabs() {
+            compare(loader.item.tabList.map(t => t.title), ["General", "Startup", "Folders", "Transfers", "Privacy"]);
+            verify(find(openTab("Folders"), i => i.settingId === "watch_folder") !== null);
+            verify(find(openTab("Transfers"), i => i.settingId === "max_active_downloads") !== null);
+            verify(find(openTab("Privacy"), i => i.settingId === "vpn_only") !== null);
+        }
+
+        function test_startup() {
+            openTab("Startup");
+            tryCompare(row("close_to_tray"), "value", true);
+            compare(row("start_in_tray").enabled, false); // only with launch_on_login
+            tryVerify(() => label("uQbit shows an icon in the tray while it runs: click it to show or hide the window, or open its menu to pause, resume or quit.") !== null);
+            row("launch_on_login").chosen(true);
+            tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
+            compare(fake.calls.find(c => c[1] === "config-set")[2], ["launch_on_login", "true"]);
+        }
+
         function test_blocklist_update() {
+            openTab("Privacy");
             tryVerify(() => button("Update now") !== null && button("Update now").visible);
             button("Update now").clicked();
             tryVerify(() => fake.calls.some(c => c[1] === "blocklist-update"));
@@ -138,6 +163,7 @@ Item {
         }
 
         function test_folders() {
+            openTab("Folders");
             tryVerify(() => row("incomplete_folder") !== null);
             const off = find(loader.item, i => i.objectName === "watch_folder-off");
             tryVerify(() => off.visible);
@@ -154,6 +180,7 @@ Item {
         }
 
         function test_turning_the_watched_folder_off_resets_it() {
+            openTab("Folders");
             const off = find(loader.item, i => i.objectName === "watch_folder-off");
             tryVerify(() => off.visible && off.enabled);
             off.clicked();

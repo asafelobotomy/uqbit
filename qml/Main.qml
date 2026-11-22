@@ -12,7 +12,9 @@ ApplicationWindow {
     height: 720
     minimumWidth: 640
     minimumHeight: 400
-    visible: true
+    /// Opened at login to wait in the tray (`uqbit --hidden`).
+    property bool startHidden: false
+    visible: !startHidden
     title: Logic.windowTitle(App.torrents.server.dl_info_speed, App.torrents.server.up_info_speed)
     color: Theme.bg
 
@@ -42,6 +44,21 @@ ApplicationWindow {
         target: App
         function onNotice(text) { toast.show(text); }
         function onAddRequested() { if (!addSheet.opened) addSheet.open(); }
+    }
+
+    // Closing hides to the tray when the settings say so and there is a tray; otherwise it
+    // quits (the engine keeps seeding unless keep_running is off).
+    onClosing: close => {
+        if (App.trayShown && App.settings.close_to_tray) {
+            close.accepted = false;
+            win.hide();
+        } else {
+            Qt.quit();
+        }
+    }
+    onVisibilityChanged: v => {
+        if (v === Window.Minimized && App.trayShown && App.settings.minimize_to_tray)
+            Qt.callLater(win.hide);
     }
 
     function selectedName() { return (App.torrents.get(App.selected).name) || ""; }

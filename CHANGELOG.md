@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.0 — 2026-11-22
+
+Tabs in uQ Settings, startup and the tray.
+
+- **The Torrents page in uQ Settings has tabs**: General, Startup, Folders, Transfers and
+  Privacy, instead of one long list. Settings remembers the last one, and searching a setting
+  opens its tab.
+- **Open uQbit when you log in** (`launch_on_login`): an XDG autostart entry
+  (`~/.config/autostart/io.github.asafelobotomy.uqbit.desktop`), which uQ's Startup page lists
+  too. **Start in the tray** (`start_in_tray`) opens it as `uqbit --hidden`: no window, just the
+  tray icon; a second start at login leaves the running one alone.
+- **Tray icon** (a StatusNotifierItem, shown in uQ's Tray island) while any tray setting is
+  on: click it to show or hide the window; its menu shows the window, pauses or resumes every
+  torrent, or quits. Its tooltip has the speeds. **Close to the tray** (`close_to_tray`) and
+  **minimise to the tray** (`minimize_to_tray`) hide the window there instead. With no tray to
+  hold it, closing quits and a hidden start opens the window, so uQbit is never out of reach.
+- uQbit's window is now a QApplication (Qt Widgets, part of qt6-base) for the tray menu.
+
 ## 0.3.0 — 2026-11-22
 
 Folder and torrent management in uQ Settings (Apps › Torrents) and `uqbit config`.

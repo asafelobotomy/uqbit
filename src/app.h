@@ -44,6 +44,8 @@ class App : public QObject {
     /// How private torrenting is right now: {required, interface, up, bound, protected,
     /// encryption, anonymous, blocklist: {on, loaded, updated, updating, error}}.
     Q_PROPERTY(QVariantMap protection READ protection NOTIFY protectionChanged)
+    /// uQbit has an icon in the tray: closing or minimising the window can hide it there.
+    Q_PROPERTY(bool trayShown READ trayShown NOTIFY trayChanged)
     /// Search through the engine's plugins. searchState: "idle", "running", "done", "error"
     /// or "unavailable" (no Python); results: [{name, url, size, seeds, leechers, site,
     /// engine, page}], best seeded first.
@@ -75,6 +77,14 @@ public:
     QVariantMap details() const { return m_details; }
     QVariantList pending() const { return m_pending; }
     void setWindow(QQuickWindow *w) { m_window = w; }
+    bool trayShown() const { return m_trayShown; }
+    void setTrayShown(bool on)
+    {
+        if (on != m_trayShown) {
+            m_trayShown = on;
+            emit trayChanged();
+        }
+    }
     QVariantMap protection() const { return m_protection; }
     QString searchState() const { return m_searchState; }
     QString searchError() const { return m_searchError; }
@@ -132,6 +142,7 @@ signals:
     void detailsChanged();
     void pendingChanged();
     void protectionChanged();
+    void trayChanged();
     void searchChanged();
     void pluginsChanged();
     /// The add sheet should open (pending has something to show).
@@ -195,6 +206,7 @@ private:
     bool m_polling = false;
     bool m_startedEngine = false;
     bool m_isDefault = false;
+    bool m_trayShown = false;
 };
 
 } // namespace uqbit

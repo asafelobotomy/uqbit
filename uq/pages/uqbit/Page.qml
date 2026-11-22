@@ -95,7 +95,7 @@ SettingsPage {
             page.workingKey = "";
             if (r.error)
                 note(key, Logic.failure(r));
-            if (["start_on_login", "vpn_only", "vpn_interface", "download_folder", "incomplete_folder", "watch_folder"].indexOf(key) >= 0)
+            if (["start_on_login", "launch_on_login", "vpn_only", "vpn_interface", "download_folder", "incomplete_folder", "watch_folder"].indexOf(key) >= 0)
                 readEngine();
         };
         if (value === "")
@@ -131,7 +131,7 @@ SettingsPage {
     ]
 
     SettingsTab {
-        title: "Torrents"
+        title: "General"
         iconName: "io.github.asafelobotomy.uqbit"
 
         SettingsCard {
@@ -191,30 +191,6 @@ SettingsPage {
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
             }
-            SwitchRow {
-                settingId: "keep_running"
-                label: "Keep downloading and seeding after closing uQbit"
-                highlight: page.highlight
-                value: page.value("keep_running") === true
-                enabled: page.ready
-                onChosen: v => page.setKey("keep_running", Logic.boolArg(v))
-            }
-            SwitchRow {
-                settingId: "start_on_login"
-                label: "Start the engine when you log in"
-                highlight: page.highlight
-                value: page.value("start_on_login") === true
-                enabled: page.ready && page.engine.canLogin
-                onChosen: v => page.setKey("start_on_login", Logic.boolArg(v))
-                HelpTip { tip: "Torrents resume seeding without opening uQbit. Uses systemd's user service uqbit-engine." }
-            }
-            UqLabel {
-                visible: text !== ""
-                text: page.notes["start_on_login"] || page.notes["keep_running"] || ""
-                color: page.errorColor
-                wrapMode: Text.Wrap
-                Layout.fillWidth: true
-            }
         }
 
         SettingsCard {
@@ -247,11 +223,27 @@ SettingsPage {
             }
         }
 
+    }
+
+    SettingsTab {
+        title: "Startup"
+        iconName: "system-run"
+
+        StartupCard { page: page }
+    }
+
+    SettingsTab {
+        title: "Folders"
+        iconName: "folder-download"
+
         FoldersCard { page: page }
+    }
+
+    SettingsTab {
+        title: "Transfers"
+        iconName: "network-transmit-receive"
 
         QueueCard { page: page }
-
-        PrivacyCard { page: page }
 
         SettingsCard {
             title: "Speed"
@@ -271,5 +263,12 @@ SettingsPage {
                 after: Logic.limitLabel(page.value("upload_limit"))
             }
         }
+    }
+
+    SettingsTab {
+        title: "Privacy"
+        iconName: "security-high"
+
+        PrivacyCard { page: page }
     }
 }

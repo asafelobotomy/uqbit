@@ -10,7 +10,7 @@ set(CMAKE_AUTORCC ON)
 
 option(UQBIT_TESTS "Build the core tests" ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick QuickControls2 DBus Network)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets Quick QuickControls2 DBus Network)
 find_package(ZLIB REQUIRED)
 
 qt_standard_project_setup(REQUIRES 6.5)
@@ -27,6 +27,7 @@ add_library(uqbit_core STATIC
     src/notify.cpp src/notify.h
     src/theme.h src/uqtheme.cpp src/uqtheme.h
     src/privacy.cpp src/privacy.h
+    src/autostart.cpp src/autostart.h
     src/cli.cpp src/cli.h src/cli_util.h src/cli_status.cpp
 )
 target_include_directories(uqbit_core PUBLIC src)
@@ -38,6 +39,7 @@ qt_add_executable(uqbit
     src/app.cpp src/app.h
     src/adding.cpp src/protect.cpp src/search.cpp
     src/single.cpp src/single.h
+    src/tray.cpp src/tray.h
 )
 
 # Must be set before the module is defined, or qmldir lists Theme as a plain type.
@@ -74,7 +76,7 @@ qt_add_qml_module(uqbit
         icons/shield.svg icons/shield-off.svg icons/plugin.svg icons/globe.svg
 )
 
-target_link_libraries(uqbit PRIVATE uqbit_core Qt6::Gui Qt6::Quick Qt6::QuickControls2)
+target_link_libraries(uqbit PRIVATE uqbit_core Qt6::Gui Qt6::Widgets Qt6::Quick Qt6::QuickControls2)
 
 include(GNUInstallDirs)
 install(TARGETS uqbit RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
