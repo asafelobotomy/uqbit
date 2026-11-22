@@ -1,6 +1,6 @@
 // uQ's theme tokens (~/.local/state/uq/theme/tokens.json, written by uqd) for the QML Theme
 // singleton, from the vendored uq-theme module (uqtheme.h/.cpp, copied unchanged from uQ's
-// native/uq-theme; CI checks them with scripts/check-uq-theme.sh). Without uQ, `present` is false
+// native/uq-theme; CI checks them with scripts/check-uq-native.sh). Without uQ, `present` is false
 // and the window uses its own dark palette. The file is followed with a file watch, not polled.
 #pragma once
 

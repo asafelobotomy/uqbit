@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2 — 2026-11-22
+
+- **uQbit follows uQ's Reduce motion** and takes its look from uQ's shared theme base. `qml/Theme.qml` is now `UqThemeBase` (vendored unchanged from uQ's `native/uq-consts`, uq-consts 1.0.0), so its colours, corners, type scale and speeds are the same as uQ's other apps. Headings are 1.5× the body size (was 1.6×) and small text is 1 pt smaller than the body (was 1.5 pt).
+- uq-theme 1.1.0 (reads `tokens.json`'s `motion`) and uq-diag 1.0.1. CI checks every vendored kit and the problem codes with one script, `scripts/check-uq-native.sh`, from `uq/native.toml`; it replaces `check-uq-theme.sh`, `check-uq-diag.sh` and `check-diag-codes.sh`.
+
 ## 0.5.1 — 2026-11-22
 
 - **uQbit's problems show in uQ.** uQbit uses uQ's shared uq-diag module (`src/uqdiag.*`, uq-diag 1.0.0): a crash of the window or the CLI leaves a crash record (with a backtrace) that uQ 0.3.35 lists on Settings › Problems with a report to copy, and the engine's start-up errors log in uQ's format with codes (`UQBIT-001` the engine isn't installed, `UQBIT-002` its profile couldn't be set up, `UQBIT-003` it couldn't start) that `uqctl explain`, `uqctl log` (which reads `uqbit-engine.service`) and the Problems page explain from `/usr/share/uq/diag/uqbit.toml`. CI checks the vendored copy and that the codes and the list agree.
