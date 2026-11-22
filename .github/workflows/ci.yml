@@ -35,6 +35,9 @@ jobs:
       - run: ctest --test-dir build --output-on-failure
       # the vendored uq-theme (uQ's native/uq-theme) is exactly the pinned release
       - run: scripts/check-uq-theme.sh 1.0.0 src/uqtheme.h src/uqtheme.cpp
+      # the vendored uq-diag likewise, and the problem codes match uq/diag/uqbit.toml
+      - run: scripts/check-uq-diag.sh 1.0.0 src/uqdiag.h src/uqdiag.cpp
+      - run: scripts/check-diag-codes.sh uq/diag/uqbit.toml src qml
       - name: uQ Settings page
         run: QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -import tests/uq/stub -input tests/uq/tst_page.qml
       - name: uQ bar icon and quick settings tile

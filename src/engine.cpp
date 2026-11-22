@@ -157,12 +157,12 @@ int execEngine(const Config &config)
 {
     const QString bin = engineBinary();
     if (bin.isEmpty()) {
-        fprintf(stderr, "uqbit: qbittorrent-nox is not installed\n");
+        qCritical("[UQBIT-001] qbittorrent-nox is not installed");
         return 3;
     }
     const QString e = prepareProfile(config);
     if (!e.isEmpty()) {
-        fprintf(stderr, "uqbit: %s\n", qPrintable(e));
+        qCritical("[UQBIT-002] %s", qPrintable(e));
         return 1;
     }
     QList<QByteArray> args{QFile::encodeName(bin)};
@@ -173,7 +173,7 @@ int execEngine(const Config &config)
         argv.push_back(a.data());
     argv.push_back(nullptr);
     ::execv(argv[0], argv.data());
-    fprintf(stderr, "uqbit: can't start %s: %s\n", argv[0], std::strerror(errno));
+    qCritical("[UQBIT-003] can't start %s: %s", argv[0], std::strerror(errno));
     return 1;
 }
 

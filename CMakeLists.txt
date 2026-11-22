@@ -26,6 +26,7 @@ add_library(uqbit_core STATIC
     src/defaultapp.cpp src/defaultapp.h
     src/notify.cpp src/notify.h
     src/theme.h src/uqtheme.cpp src/uqtheme.h
+    src/uqdiag.cpp src/uqdiag.h
     src/privacy.cpp src/privacy.h
     src/autostart.cpp src/autostart.h
     src/trackers.cpp src/trackers.h
@@ -90,6 +91,8 @@ install(FILES packaging/systemd/uqbit-engine.service
 install(FILES icons/uqbit.svg DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
     RENAME io.github.asafelobotomy.uqbit.svg)
 install(DIRECTORY uq/pages/uqbit DESTINATION ${CMAKE_INSTALL_DATADIR}/uq/settings/pages)
+# uQbit's problem codes, for uqctl explain and uQ Settings' Problems page.
+install(FILES uq/diag/uqbit.toml DESTINATION ${CMAKE_INSTALL_DATADIR}/uq/diag)
 install(DIRECTORY uq/widgets/uqbit uq/widgets/uqbit-quick DESTINATION ${CMAKE_INSTALL_DATADIR}/uq/shell/widgets)
 
 if(UQBIT_TESTS)
