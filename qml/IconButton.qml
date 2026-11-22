@@ -26,7 +26,7 @@ AbstractButton {
         radius: width / 2
         color: btn.tint
         opacity: btn.down ? 0.24 : btn.hovered ? 0.14 : 0
-        Behavior on opacity { NumberAnimation { duration: 120 } }
+        Behavior on opacity { NumberAnimation { duration: Theme.motionBase; easing.type: Theme.easing } }
     }
     contentItem: Impl.IconImage {
         source: btn.icon.source

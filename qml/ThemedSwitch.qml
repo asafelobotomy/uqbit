@@ -15,6 +15,7 @@ Switch {
         implicitHeight: 22
         radius: height / 2
         color: sw.checked ? Theme.accent : Theme.surfaceAlt
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
         border.color: sw.checked ? Theme.accent : (sw.visualFocus ? Theme.accent : Theme.border)
         Rectangle {
             x: sw.checked ? parent.width - width - 3 : 3
@@ -23,7 +24,8 @@ Switch {
             height: 16
             radius: 8
             color: sw.checked ? Theme.accentText : Theme.textMuted
-            Behavior on x { NumberAnimation { duration: 120 } }
+            Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+            Behavior on x { NumberAnimation { duration: Theme.motionBase; easing.type: Theme.easing } }
         }
     }
     contentItem: Label {

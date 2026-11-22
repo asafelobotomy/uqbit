@@ -17,6 +17,7 @@ CheckBox {
         implicitHeight: 18
         radius: Math.min(5, Theme.radius / 2)
         color: box.checked ? Theme.accent : "transparent"
+        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
         border.color: box.checked || box.visualFocus ? Theme.accent : Theme.border
         border.width: 1.5
         Impl.IconImage {

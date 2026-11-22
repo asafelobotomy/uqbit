@@ -74,6 +74,7 @@ Rectangle {
                 background: Rectangle {
                     radius: Theme.radius
                     color: f.current ? Qt.alpha(Theme.accent, 0.16) : f.hovered ? Qt.alpha(Theme.text, 0.06) : "transparent"
+                    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                     border.color: f.visualFocus ? Theme.accent : "transparent"
                 }
                 contentItem: RowLayout {
@@ -124,6 +125,7 @@ Rectangle {
             background: Rectangle {
                 radius: Theme.radius
                 color: searchButton.current ? Qt.alpha(Theme.accent, 0.16) : searchButton.hovered ? Qt.alpha(Theme.text, 0.06) : "transparent"
+                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                 border.color: searchButton.visualFocus ? Theme.accent : "transparent"
             }
             contentItem: RowLayout {
@@ -168,6 +170,7 @@ Rectangle {
             background: Rectangle {
                 radius: Theme.radius
                 color: shield.hovered ? Qt.alpha(shield.tone, 0.16) : Qt.alpha(shield.tone, 0.08)
+                Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                 border.color: shield.visualFocus ? Theme.accent : Qt.alpha(shield.tone, 0.35)
             }
             contentItem: RowLayout {
