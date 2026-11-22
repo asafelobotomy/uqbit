@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 — 2026-11-22
+
+- **uQbit's problems show in uQ.** uQbit uses uQ's shared uq-diag module (`src/uqdiag.*`, uq-diag 1.0.0): a crash of the window or the CLI leaves a crash record (with a backtrace) that uQ 0.3.35 lists on Settings › Problems with a report to copy, and the engine's start-up errors log in uQ's format with codes (`UQBIT-001` the engine isn't installed, `UQBIT-002` its profile couldn't be set up, `UQBIT-003` it couldn't start) that `uqctl explain`, `uqctl log` (which reads `uqbit-engine.service`) and the Problems page explain from `/usr/share/uq/diag/uqbit.toml`. CI checks the vendored copy and that the codes and the list agree.
+
 ## 0.5.0 — 2026-11-22
 
 - **Tracker lists.** Add links to public tracker lists (such as ngosang/trackerslist), up to

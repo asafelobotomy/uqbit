@@ -1,0 +1,26 @@
+# uQbit's problem codes for uQ (`uqctl log`, `uqctl explain`, Settings › Problems). Installed as
+# /usr/share/uq/diag/uqbit.toml. A code never changes meaning: set `retired = true` on one nothing
+# logs any more, and give a new problem the next number.
+app = "uQbit"
+units = ["uqbit-engine.service"]
+
+[[code]]
+id = "UQBIT-001"
+severity = "error"
+title = "uQbit's torrent engine isn't installed"
+means = "uQbit downloads through qBittorrent's headless engine, and it isn't on this computer, so no torrent can download or seed."
+fix = "Install it with Bindle, or run: sudo pacman -S qbittorrent-nox (or qbittorrent-enhanced-nox from the AUR). Then open uQbit again."
+
+[[code]]
+id = "UQBIT-002"
+severity = "error"
+title = "uQbit's engine couldn't be set up"
+means = "uQbit couldn't write the engine's settings into its profile (~/.local/share/uqbit), so the engine didn't start. The logged line says what failed."
+fix = "Check that your home folder has free space and that ~/.local/share/uqbit belongs to you, then start uQbit again."
+
+[[code]]
+id = "UQBIT-003"
+severity = "error"
+title = "uQbit's engine couldn't start"
+means = "The engine is installed but couldn't be run. Torrents are paused until it starts."
+fix = "Run `uqbit engine start` in a terminal to see why. Reinstalling qbittorrent-nox fixes a broken install."

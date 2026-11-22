@@ -2,6 +2,7 @@
 #include "cli.h"
 #include "single.h"
 #include "tray.h"
+#include "uqdiag.h"
 
 #include <QCoreApplication>
 #include <QApplication>
@@ -13,6 +14,8 @@
 
 int main(int argc, char **argv)
 {
+    // uQ's log format and crash records (uQ's native/uq-diag).
+    uqdiag::init("uqbit", UQBIT_VERSION);
     QStringList args;
     for (int i = 1; i < argc; ++i)
         args.append(QString::fromLocal8Bit(argv[i]));
