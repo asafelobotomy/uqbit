@@ -26,7 +26,8 @@ Item {
                             { key: "seed_time", value: 90 }, { key: "when_seeded", value: "stop" },
                             { key: "launch_on_login", value: false }, { key: "start_in_tray", value: false },
                             { key: "close_to_tray", value: true }, { key: "minimize_to_tray", value: false },
-                            { key: "tracker_lists", value: "https://ngosang.github.io/trackerslist/trackers_best.txt" }] } },
+                            { key: "tracker_lists", value: "https://ngosang.github.io/trackerslist/trackers_best.txt" },
+                            { key: "import_plugins", value: true }] } },
                 status: { code: 0, output: { engine: "running", vpn: { required: false, interface: null, up: false, bound: false },
                           protected: false, blocklist: { on: true, path: "/x/blocklist.p2p", updated: "2026-11-21T23:18:47Z" },
                           trackers: { lists: ["https://ngosang.github.io/trackerslist/trackers_best.txt"], count: 20, updated: "2026-11-22T00:42:10Z" } } },
@@ -143,6 +144,14 @@ Item {
             row("launch_on_login").chosen(true);
             tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
             compare(fake.calls.find(c => c[1] === "config-set")[2], ["launch_on_login", "true"]);
+        }
+
+        function test_import_plugins() {
+            openTab("General");
+            tryCompare(row("import_plugins"), "value", true);
+            row("import_plugins").chosen(false);
+            tryVerify(() => fake.calls.some(c => c[1] === "config-set"));
+            compare(fake.calls.find(c => c[1] === "config-set")[2], ["import_plugins", "false"]);
         }
 
         function test_tracker_lists() {

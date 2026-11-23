@@ -8,6 +8,7 @@
 #include "torrents.h"
 #include "autostart.h"
 #include "trackers.h"
+#include "plugins.h"
 
 #include <QDir>
 #include <QFile>
@@ -204,6 +205,52 @@ private slots:
         // Lists turned off: the stored ones stop being added.
         c.reset("tracker_lists");
         QCOMPARE(preferencesFor(c, "/usr/bin/uqbit").value("add_trackers_enabled").toBool(), false);
+    }
+
+    void qbtPluginFolders()
+    {
+        // qBittorrent's native folder first, so qbit-plugin-dl's default target is found.
+        const QStringList dirs = qbtPluginDirs();
+        QCOMPARE(dirs.first(), m_dir.filePath("data") + "/qBittorrent/nova3/engines");
+        QVERIFY(dirs.at(1).endsWith("/.var/app/org.qbittorrent.qBittorrent/data/qBittorrent/nova3/engines"));
+        QVERIFY(validPluginFile("piratebay.py"));
+        QVERIFY(validPluginFile("one337x.py"));
+        for (const char *bad : {"__init__.py", "nova2.py", "helpers.py", "1337x.py", "a b.py",
+                                "x.pyc", "../x.py", "x.txt"})
+            QVERIFY2(!validPluginFile(bad), bad);
+
+        const QString a = m_dir.filePath("plugA"), b = m_dir.filePath("plugB");
+        QDir().mkpath(a);
+        QDir().mkpath(b);
+        auto write = [](const QString &path, const QByteArray &data) {
+            QFile f(path);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(data);
+        };
+        write(a + "/glotorrents.py", "#VERSION: 1.7\nclass glotorrents: pass\n");
+        write(a + "/nova2.py", "x");
+        write(a + "/empty.py", "");
+        write(a + "/readme.txt", "x");
+        write(b + "/glotorrents.py", "#VERSION: 1.0\n");
+        write(b + "/ettv.py", "#VERSION: 1.2\n");
+        write(b + "/huge.py", QByteArray((1 << 20) + 1, '#'));
+        // The engine's own folder is never a source, even when listed.
+        const QString own = enginePluginDir();
+        QDir().mkpath(own);
+        write(own + "/eztv.py", "#VERSION: 1.24\n");
+        const QList<QbtPlugin> found = qbtPlugins({a, b, own, m_dir.filePath("missing")});
+        QStringList names;
+        for (const QbtPlugin &p : found)
+            names << p.name;
+        QCOMPARE(names, (QStringList{"glotorrents", "ettv"}));
+        QCOMPARE(found.first().path, a + "/glotorrents.py"); // the first folder wins
+        QVERIFY(!found.first().stamp.isEmpty());
+        QCOMPARE(importedPlugins(), QJsonObject());
+
+        Config c(m_dir.filePath("plugins.json"));
+        QCOMPARE(c.boolean("import_plugins"), true);
+        QCOMPARE(c.set("import_plugins", "false"), QString());
+        QCOMPARE(c.boolean("import_plugins"), false);
     }
 
     void launchOnLogin()

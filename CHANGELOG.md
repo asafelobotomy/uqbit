@@ -1,9 +1,22 @@
 # Changelog
 
-## 0.5.2 — 2026-11-22
+## 0.6.1 — 2026-11-23
 
 - **uQbit follows uQ's Reduce motion** and takes its look from uQ's shared theme base. `qml/Theme.qml` is now `UqThemeBase` (vendored unchanged from uQ's `native/uq-consts`, uq-consts 1.0.0), so its colours, corners, type scale and speeds are the same as uQ's other apps. Headings are 1.5× the body size (was 1.6×) and small text is 1 pt smaller than the body (was 1.5 pt).
 - uq-theme 1.1.0 (reads `tokens.json`'s `motion`) and uq-diag 1.0.1. CI checks every vendored kit and the problem codes with one script, `scripts/check-uq-native.sh`, from `uq/native.toml`; it replaces `check-uq-theme.sh`, `check-uq-diag.sh` and `check-diag-codes.sh`.
+
+## 0.6.0 — 2026-11-22
+
+- **qBittorrent's search plugins work in uQbit.** uQbit's engine has a profile of its own, so
+  plugins installed into qBittorrent's plugin folder (by qBittorrent, or by tools such as
+  qbit-plugin-dl) never reached it. uQbit now brings them in by itself: it looks at
+  `~/.local/share/qBittorrent/nova3/engines` (and the Flatpak's and the old `data/` path) every
+  10 seconds, installs new or changed plugins through the engine (a copy goes through uQbit's
+  profile, so the sandboxed engine never reads your other folders) and removes the ones it
+  brought in once they are deleted there. A plugin of the same name that you installed in
+  uQbit is left alone. On by default (`import_plugins`, the Search card under General in uQ
+  Settings); the Plugins sheet marks them "from qBittorrent's plugin folder". `uqbit plugins
+  status|import`.
 
 ## 0.5.1 — 2026-11-22
 

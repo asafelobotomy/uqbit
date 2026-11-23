@@ -31,6 +31,10 @@ on 127.0.0.1, so you get qBittorrent's engine with a window that looks like the 
 - **Search** with qBittorrent's search plugins (run by the engine; needs Python 3): results
   sorted by seeds, added with one click. The Plugins sheet installs the official plugins,
   turns them on or off, updates them, removes them, or installs one from an https:// link.
+  Plugins in qBittorrent's own plugin folder (`~/.local/share/qBittorrent/nova3/engines`, or
+  the Flatpak's), such as the ones qbit-plugin-dl installs, show up in uQbit by themselves
+  within seconds and follow that folder: changed ones are updated, deleted ones go away
+  (`import_plugins`, on by default; `uqbit plugins status|import`).
 - **Privacy by default**: encryption required, anonymous mode on, and a blocklist of known bad
   peers (refreshed weekly; local and LAN ranges are kept out of it). Change any of it from the
   shield in the sidebar, `uqbit config set` or uQ Settings.
@@ -89,6 +93,7 @@ uqbit pause-all | resume-all
 uqbit show                            open the window
 uqbit blocklist status|update [--json]
 uqbit trackers status|update [--json]  the tracker lists added to new public torrents
+uqbit plugins status|import [--json]   search plugins from qBittorrent's plugin folder
 ```
 
 Startup and tray: `launch_on_login`, `start_in_tray`, `close_to_tray`, `minimize_to_tray`

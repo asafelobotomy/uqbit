@@ -87,6 +87,7 @@ void App::engineReady()
         updateBlocklist();
     refreshTrackers();
     refreshPlugins();
+    importQbtPlugins();
     if (m_afterReady) {
         auto then = std::move(m_afterReady);
         m_afterReady = nullptr;
@@ -140,6 +141,8 @@ QString App::setSetting(const QString &key, const QString &value)
     checkProtection();
     if (key == "blocklist" && m_config.boolean("blocklist") && blocklistStale())
         updateBlocklist();
+    if (key == "import_plugins")
+        importQbtPlugins();
     return {};
 }
 

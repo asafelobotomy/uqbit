@@ -27,6 +27,7 @@ int cmdAll(bool start, QTextStream &out, QTextStream &err);
 int cmdShow(QTextStream &err);
 int cmdBlocklist(const QStringList &args, bool asJson, QTextStream &out, QTextStream &err);
 int cmdTrackers(const QStringList &args, bool asJson, QTextStream &out, QTextStream &err);
+int cmdPlugins(const QStringList &args, bool asJson, QTextStream &out, QTextStream &err);
 QJsonObject trackersJson(const Config &cfg);
 QString refreshTrackers(const Config &cfg);
 
