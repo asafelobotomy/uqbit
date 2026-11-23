@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1 — 2026-11-23
+
+- **uQbit follows uQ's Reduce motion** and takes its look from uQ's shared theme base. `qml/Theme.qml` is now `UqThemeBase` (vendored unchanged from uQ's `native/uq-consts`, uq-consts 1.0.0), so its colours, corners, type scale and speeds are the same as uQ's other apps. Headings are 1.5× the body size (was 1.6×) and small text is 1 pt smaller than the body (was 1.5 pt).
+- uq-theme 1.1.0 (reads `tokens.json`'s `motion`) and uq-diag 1.0.1. CI checks every vendored kit and the problem codes with one script, `scripts/check-uq-native.sh`, from `uq/native.toml`; it replaces `check-uq-theme.sh`, `check-uq-diag.sh` and `check-diag-codes.sh`.
+
 ## 0.6.0 — 2026-11-22
 
 - **qBittorrent's search plugins work in uQbit.** uQbit's engine has a profile of its own, so

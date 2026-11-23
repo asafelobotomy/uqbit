@@ -54,6 +54,7 @@ qt_add_qml_module(uqbit
     QML_FILES
         qml/Main.qml
         qml/Theme.qml
+        qml/UqThemeBase.qml
         qml/Sidebar.qml
         qml/TorrentRow.qml
         qml/DetailsPanel.qml
