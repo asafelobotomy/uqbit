@@ -36,6 +36,8 @@ jobs:
       # uQ's kits (uq/native.toml) are exactly the pinned releases, and the problem codes match
       # uq/diag/uqbit.toml
       - run: scripts/check-uq-native.sh
+      # Every source file is within 400 lines of code (uQ's uq-loc)
+      - run: scripts/check-loc.sh
       - name: uQ Settings page
         run: QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -import tests/uq/stub -input tests/uq/tst_page.qml
       - name: uQ bar icon and quick settings tile
